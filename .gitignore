@@ -1,0 +1,51 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment variables
+.env
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Backend specific (if any, add more)
+/backend/coverage/
+/backend/.nyc_output/
+
+# Frontend specific (if any, add more)
+/frontend/coverage/
+/frontend/dist/ # Vite build output (already included above, but for clarity)
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Package manager specific (if you switch later)
+package-lock.json # Keep yarn.lock, but exclude package-lock.json if using Yarn
+
+# Editor configuration files (optional, if you want to share editor settings)
+# .editorconfig
+
+# Other common ignored files (optional)
+# *.bak
+# *.orig
+# *.rej
+# *.patch
