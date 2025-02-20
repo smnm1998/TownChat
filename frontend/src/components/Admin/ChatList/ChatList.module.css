@@ -1,0 +1,133 @@
+.container {
+    @apply p-6 bg-white rounded-lg shadow-md;
+}
+
+.toolbar {
+    @apply flex justify-between items-center mb-6 gap-4;
+}
+
+.searchBox {
+    @apply relative flex items-center flex-1 max-w-md gap-3;
+}
+
+.searchIcon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2;
+    color: var(--color-primary-light);
+}
+
+.searchInput {
+    @apply w-full pl-10 pr-4 py-2 border rounded-md;
+    border-color: var(--color-primary-light);
+    height: 40px; /* 버튼과 동일한 높이 지정 */
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px var(--color-secondary-light);
+}
+
+.searchButton {
+    @apply px-4 rounded-md text-white transition-colors flex items-center justify-center whitespace-nowrap;
+    background-color: var(--color-primary);
+    height: 40px;
+    min-width: 80px; /* 최소 너비 증가 */
+}
+
+.searchButton:hover {
+    background-color: var(--color-primary-light);
+}
+
+.resetButton {
+    @apply px-4 rounded-md border transition-colors whitespace-nowrap flex items-center justify-center;
+    color: var(--color-primary);
+    border-color: var(--color-primary-light);
+    height: 40px;
+    min-width: 64px;
+}
+
+.resetButton:hover {
+    background-color: var(--color-primary-light);
+    color: white;
+}
+
+.buttonGroup {
+    @apply flex items-center gap-2;
+}
+
+.deleteButton {
+    @apply flex items-center gap-2 px-4 py-2 rounded-md text-white transition-colors;
+    background-color: var(--color-primary);
+}
+
+.deleteButton:hover {
+    background-color: var(--color-primary-light);
+}
+
+.confirmDeleteButton {
+    @apply px-4 py-2 rounded-md text-white transition-colors;
+    background-color: var(--color-error);
+}
+
+.confirmDeleteButton:hover {
+    opacity: 0.9;
+}
+
+.tableWrapper {
+    @apply overflow-x-auto border rounded-lg;
+    border-color: var(--color-primary-light);
+}
+
+.table {
+    @apply w-full border-collapse;
+}
+
+.tableRow {
+    @apply cursor-pointer transition-colors;
+}
+
+.tableRow:hover {
+    background-color: var(--color-secondary-light);
+    @apply bg-opacity-10;
+}
+
+.table th {
+    @apply px-4 py-3 text-left bg-gray-50 font-medium border-b;
+    color: var(--color-primary);
+    border-color: var(--color-primary-light);
+}
+
+.table td {
+    @apply px-4 py-3 border-b;
+    border-color: var(--color-primary-light);
+}
+
+.checkboxCell {
+    @apply w-10 text-center;
+}
+
+.table tr:hover {
+    background-color: var(--color-secondary-light);
+    @apply bg-opacity-10;
+}
+
+.pagination {
+    @apply flex justify-center gap-2 mt-6;
+}
+
+.pageButton {
+    @apply px-3 py-1 rounded-md border transition-colors;
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.pageButton:hover {
+    background-color: var(--color-primary-light);
+    color: white;
+}
+
+.activePage {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+}

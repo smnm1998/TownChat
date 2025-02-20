@@ -1,0 +1,82 @@
+.container {
+    @apply max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md;
+}
+
+.title {
+    color: var(--color-primary);
+    @apply text-2xl font-bold mb-6;
+}
+
+.form {
+    @apply space-y-6;
+}
+
+.formGroup {
+    @apply space-y-1;
+}
+
+.label {
+    color: var(--color-primary);
+    @apply block text-sm font-medium;
+}
+
+.input {
+    @apply w-full px-3 py-2 border rounded-md;
+    border-color: var(--color-primary-light);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px var(--color-secondary-light);
+}
+
+.textarea {
+    @apply w-full px-3 py-2 border rounded-md;
+    border-color: var(--color-primary-light);
+}
+
+.textarea:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px var(--color-secondary-light);
+}
+
+.fileInput {
+    @apply block w-full text-sm;
+    color: var(--color-primary);
+}
+
+.fileInput::file-selector-button {
+    @apply mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold;
+    background-color: var(--color-secondary-light);
+    color: var(--color-primary);
+}
+
+.fileInput:hover::file-selector-button {
+    background-color: var(--color-secondary);
+}
+
+.error {
+    color: var(--color-error);
+    @apply mt-1 text-sm;
+}
+
+.submitButton {
+    @apply w-full py-2 px-4 border-0 rounded-md shadow-sm font-medium;
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.submitButton:hover {
+    background-color: var(--color-primary-light);
+}
+
+.submitButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-secondary);
+}
+
+.submitButton:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}

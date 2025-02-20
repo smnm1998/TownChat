@@ -1,0 +1,202 @@
+.overlay {
+    @apply fixed inset-0 flex items-center justify-center z-50;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+    @apply bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col;
+}
+
+.header {
+    @apply flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10;
+    border-color: var(--color-primary-light);
+}
+
+.title {
+    @apply text-xl font-bold;
+    color: var(--color-primary);
+}
+
+.closeButton {
+    @apply text-2xl hover:opacity-70 transition-opacity;
+    color: var(--color-primary);
+}
+
+.content {
+    @apply p-6 space-y-6 overflow-y-auto flex-1;
+}
+
+.topSection {
+    @apply flex items-start gap-8 bg-gray-50 rounded-lg p-6;
+}
+
+.imageContainer {
+    @apply flex flex-col items-center space-y-3;
+    min-width: 200px;
+}
+
+.imageWrapper {
+    @apply relative w-32 h-32;
+}
+
+.profileImage {
+    @apply w-full h-full rounded-full object-cover border-4;
+    border-color: var(--color-secondary);
+}
+
+.imageOverlay {
+    @apply absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-200;
+    background-color: rgba(23, 23, 23, 0.5);
+}
+
+.imageOverlay span {
+    @apply text-sm font-medium z-10;
+    color: #f9f9f9;
+}
+
+.imageWrapper:hover .imageOverlay {
+    @apply opacity-100;
+}
+
+.imageInput {
+    @apply absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10;
+}
+
+.divider {
+    @apply w-px h-40;
+    background-color: var(--color-primary-light);
+}
+
+.infoGrid {
+    @apply flex flex-col gap-4  rounded-md;
+}
+
+.section {
+    @apply border-t pt-6;
+    border-color: var(--color-primary-light);
+}
+
+.section h3 {
+    @apply text-lg font-bold mb-4;
+    color: var(--color-primary);
+}
+
+.infoItem {
+    @apply space-y-1;
+}
+
+.infoItem label {
+    @apply block text-sm font-medium;
+    color: var(--color-primary);
+}
+
+.infoItem p {
+    @apply px-4 py-2 rounded-md;
+    background-color: var(--color-background-light);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary-light);
+}
+
+.editInput {
+    @apply w-full px-4 py-2 border rounded-md transition-colors;
+    border-color: var(--color-primary-light);
+    background-color: white;
+    color: var(--color-primary);
+}
+
+.editInput:hover {
+    border-color: var(--color-secondary);
+}
+
+.editInput:focus {
+    @apply outline-none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px var(--color-secondary-light);
+}
+
+.footer {
+    @apply flex justify-end gap-3 p-6 border-t sticky bottom-0 bg-white;
+    border-color: var(--color-primary-light);
+}
+
+.buttonGroup {
+    @apply flex gap-3;
+}
+
+/* 수정하기 버튼 */
+.editButton {
+    @apply px-6 py-2 rounded-md transition-colors;
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+}
+
+.editButton:hover {
+    background-color: var(--color-secondary-dark);
+}
+
+/* 삭제하기 버튼 */
+.deleteButton {
+    @apply px-6 py-2 rounded-md text-white transition-colors;
+    background-color: var(--color-error);
+}
+
+.deleteButton:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* 저장하기 버튼 */
+.saveButton {
+    @apply px-6 py-2 rounded-md text-white transition-colors;
+    background-color: var(--color-success);
+}
+
+.saveButton:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* 뒤로가기 버튼 */
+.cancelButton {
+    @apply px-6 py-2 rounded-md text-white transition-colors;
+    background-color: var(--color-primary-light);
+}
+
+.cancelButton:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* 파일 업로드 관련 스타일 */
+.fileUpload {
+    @apply relative;
+}
+
+.fileInput {
+    @apply hidden;
+}
+
+.fileLabel {
+    @apply inline-flex px-4 py-2 rounded-md cursor-pointer transition-colors;
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+}
+
+.fileLabel:hover {
+    background-color: var(--color-secondary-dark);
+}
+
+.currentFile {
+    @apply block mt-2 text-sm;
+    color: var(--color-primary-light);
+}
+
+.downloadLink {
+    @apply inline-flex items-center px-4 py-2 rounded-md transition-colors;
+    color: var(--color-secondary);
+}
+
+.downloadLink:hover {
+    color: var(--color-secondary-dark);
+}
+
+.registrantSection {
+    @apply flex-1;
+}
