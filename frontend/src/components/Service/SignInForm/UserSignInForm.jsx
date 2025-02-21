@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import styles from './AdminSignInForm.module.css';
+import styles from './UserSignInForm.module.css';
 import Logo from '@assets/logo.svg';
 
-const AdminSignInForm = () => {
+const UserSignInForm = () => {
     const [isLoading, setIsLoading] = useState(false);
     const {
         register,
@@ -29,7 +29,7 @@ const AdminSignInForm = () => {
             </div>
             <div className={styles.formWrapper}>
                 <div>
-                    <h2 className={styles.title}>관리자 로그인</h2>
+                    <h2 className={styles.title}>로그인</h2>
                 </div>
                 <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
                     <div className={styles.inputGroup}>
@@ -95,4 +95,4 @@ const AdminSignInForm = () => {
     );
 };
 
-export default AdminSignInForm;
+export default UserSignInForm;

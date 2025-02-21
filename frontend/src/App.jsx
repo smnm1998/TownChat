@@ -5,6 +5,7 @@ import AdminSignInPage from '@pages/Admin/Auth/AdminSignInPage';
 import AdminMainPage from '@pages/Admin/AdminMainPage';
 import AdminList from '@pages/Admin/ChatList/AdminList';
 import AdminCreate from '@pages/Admin/CreateChat/AdminCreate';
+import UserSignIn from '@pages/Service/UserSignIn';
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
             <Routes>
                 {/* 메인 페이지 */}
                 <Route path="/" element={<MainPage />} />
+                <Route path="/sign-in" element={<UserSignIn />} />
 
                 {/* 관리자 페이지 */}
                 <Route path="/admin/sign-in" element={<AdminSignInPage />} />
