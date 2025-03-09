@@ -1,0 +1,35 @@
+.inputGroup {
+    @apply flex flex-col mb-4;
+}
+
+.inputWrapper {
+    @apply relative;
+}
+
+.input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-800
+        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
+        transition-all duration-200;
+}
+
+.withIcon {
+    @apply pl-12;
+}
+
+.inputIcon {
+    @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl;
+}
+
+.inputError {
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+}
+
+.errorMessage {
+    @apply mt-1 text-sm text-red-600;
+}
+
+.passwordToggle {
+    @apply absolute right-4 top-1/2 -translate-y-1/2 bg-transparent border-none
+        text-sm text-gray-600 hover:text-gray-900 font-medium
+        transition-colors duration-150 cursor-pointer;
+}
