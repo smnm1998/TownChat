@@ -1,0 +1,84 @@
+.form {
+    @apply flex flex-col space-y-6 w-full;
+}
+
+.rememberMeContainer {
+    @apply flex items-center justify-between;
+}
+
+.rememberMe {
+    @apply flex items-center cursor-pointer;
+}
+
+.termsContainer {
+    @apply flex flex-col mb-2;
+}
+
+.terms {
+    @apply flex items-center cursor-pointer;
+}
+
+.checkbox {
+    @apply h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500;
+}
+
+.checkboxLabel {
+    @apply ml-2 block text-sm text-gray-700;
+}
+
+.error {
+    @apply text-red-500;
+}
+
+.errorMessage {
+    @apply mt-1 text-sm text-red-600;
+}
+
+.pageContainer {
+    @apply min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12;
+}
+
+.contentContainer {
+    @apply w-full max-w-md bg-white p-8 rounded-lg shadow-md;
+}
+
+.header {
+    @apply mb-6 text-center;
+}
+
+.title {
+    @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.subtitle {
+    @apply text-sm text-gray-600;
+}
+
+.link {
+    @apply font-medium text-yellow-600 hover:text-yellow-700 hover:underline;
+}
+
+.errorContainer {
+    @apply mb-4 p-3 bg-red-50 border border-red-200 rounded-md;
+}
+
+/* 성공 메시지 관련 스타일 */
+.successMessage {
+    @apply text-center;
+}
+
+.successIcon {
+    @apply mx-auto w-20 h-20 flex items-center justify-center bg-yellow-100 rounded-full mb-6;
+}
+
+.checkMarkIcon {
+    @apply text-yellow-600 text-3xl;
+}
+
+.successText {
+    @apply mt-4 text-gray-600 mb-8;
+}
+
+.successActions {
+    @apply mt-6;
+}
