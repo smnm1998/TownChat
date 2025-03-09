@@ -69,23 +69,23 @@ const signUp = async (userData) => {
 };
 
 // 로그인 (+리프레시 토큰)
-const signIn = async (username, password) => {
+const signIn = async (email, password) => {
     // 사용자 조회
-    const user = await User.findOne({ where: { username } });
+    const user = await User.findOne({ where: { email } });
 
     if (!user) {
-        throw new AuthError('사용자명 또는 비밀번호가 일치하지 않습니다.');
+        throw new AuthError('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
 
     // 비밀번호 검증
     const isPasswordValid = await user.validatePassword(password);
 
     if (!isPasswordValid) {
-        throw new AuthError('사용자명 또는 비밀번호가 일치하지 않습니다.');
+        throw new AuthError('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
 
     // 토큰 페이로드
-    const tokenPayload = { id: user.id, username: user.username };
+    const tokenPayload = { id: user.id, email: user.email };
 
     // 엑세스 토큰 생성
     const accessToken = generateAccessToken(tokenPayload);

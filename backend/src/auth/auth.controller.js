@@ -30,7 +30,7 @@ const signIn = async (req, res, next) => {
 
         // 로그인 및 토큰 생성
         const result = await authService.signIn(
-            req.body.username,
+            req.body.email,
             req.body.password
         );
 
