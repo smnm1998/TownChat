@@ -1,0 +1,59 @@
+.container {
+    @apply flex items-center justify-center min-h-screen;
+}
+
+.innerContainer {
+    @apply w-full max-w-md flex flex-col p-6;
+}
+
+.logoSection {
+    @apply flex flex-col items-center mb-4;
+}
+
+.logo {
+    @apply h-7 mb-4;
+}
+
+.taglineContainer {
+    @apply text-center mb-2;
+}
+
+.taglineMain {
+    @apply text-sm text-gray-800 mb-1;
+}
+
+.taglineHighlight {
+    @apply text-sm text-gray-700;
+}
+
+.highlight {
+    @apply font-medium;
+    color: #FFC100;
+}
+
+.illustrationContainer {
+    @apply flex justify-center items-center my-6;
+}
+
+.illustration {
+    @apply w-40 h-auto;
+}
+
+.errorMessage {
+    @apply bg-red-100 text-red-600 p-3 rounded-md mb-4 text-sm;
+}
+
+/* 반응형 스타일 */
+@media (min-width: 640px) {
+    .innerContainer {
+        @apply p-8 rounded-lg;
+    }
+    
+    .logo {
+        @apply h-10;
+    }
+    
+    .illustration {
+        @apply w-48;
+    }
+}

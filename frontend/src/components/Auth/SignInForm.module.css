@@ -1,51 +1,52 @@
 .form {
-    @apply flex flex-col space-y-6 w-full;
+  @apply w-full flex flex-col;
 }
 
-.rememberMeContainer {
-    @apply flex items-center justify-between;
+.formGroup {
+  @apply mb-4;
 }
 
-.rememberMe {
-    @apply flex items-center cursor-pointer;
+.label {
+  @apply block text-sm font-medium text-gray-700 mb-2;
 }
 
-.checkbox {
-    @apply h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500;
+.input {
+  @apply w-full px-3 py-2.5 border border-gray-300 rounded-md;
 }
 
-.checkboxLabel {
-    @apply ml-2 block text-sm text-gray-700;
+.input::placeholder {
+  @apply text-gray-400;
 }
 
-.pageContainer {
-    @apply min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12;
+.errorText {
+  @apply text-red-500 text-xs mt-1;
 }
 
-.contentContainer {
-    @apply w-full max-w-md bg-white p-8 rounded-lg shadow-md;
+.signUpLinkContainer {
+  @apply flex justify-center items-center text-sm mb-4;
 }
 
-.header {
-    @apply mb-6 text-center;
+.signUpWrapper {
+  @apply flex items-center;
 }
 
-.title {
-    @apply text-3xl font-bold text-gray-900 mb-2;
+.signUpText {
+  @apply text-gray-600;
 }
 
-.subtitle {
-    @apply text-sm text-gray-600;
+.signUpLink {
+  @apply ml-1 font-bold underline text-black;
 }
 
-.link {
-    @apply font-medium text-yellow-600 hover:text-yellow-700 hover:underline;
+.loginButton {
+  @apply w-full py-3 rounded-md text-black font-medium transition-colors;
+  background-color: #FFC100;
 }
 
-.errorContainer {
-    @apply mb-4 p-3 bg-red-50 border border-red-200 rounded-md;
+.loginButton:hover {
+  background-color: #E6AF00;
 }
 
-.errorMessage {
-    @apply text-sm text-red-600;
+.loginButton:disabled {
+  @apply opacity-70 cursor-not-allowed;
 }

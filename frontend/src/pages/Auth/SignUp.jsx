@@ -1,89 +1,77 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaCheck } from 'react-icons/fa';
-import Button from '@components/common/Button';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import SignUpForm from '@components/Auth/SignUpForm';
-import styles from '@components/Auth/SignUpForm.module.css';
+import Logo from '@assets/Logo.svg';
+import styles from './SignUp.module.css';
 
 const SignUp = () => {
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [registrationSuccess, setRegistrationSuccess] = useState(false);
+    const [signUpError, setSignUpError] = useState('');
 
-    const handleSubmit = async (data) => {
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
+
+    const onSubmit = async (data) => {
+        setIsLoading(true);
+        setSignUpError('');
+        
         try {
-            setIsLoading(true);
-            setError(null);
+            // 비밀번호 확인은 서버로 보내지 않음
+            const { passwordConfirm, termsAgreed, ...formData } = data;
             
-            // 전화번호는 선택적 필드
-            const userData = {
-                username: data.username,
-                email: data.email,
-                password: data.password,
-            };
+            const response = await fetch('http://localhost:3000/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-            if (data.phone) {
-                userData.phone = data.phone;
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || '회원가입에 실패했습니다.');
             }
-            
-            // API 호출 로직은 나중에 구현
-            console.log('회원가입 데이터:', userData);
-            
-            // 임시 대기 시간 (API 호출 시뮬레이션)
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // 회원가입 성공
-            setRegistrationSuccess(true);
-        } catch (err) {
-            setError(err.message || '회원가입 중 오류가 발생했습니다.');
+
+            // 회원가입 성공 시 토큰 저장 & 리다이렉트
+            localStorage.setItem('accessToken', result.data.accessToken);
+            localStorage.setItem('refreshToken', result.data.refreshToken);
+
+            // 로그인 페이지 또는 메인 페이지로 이동
+            navigate('/signin', { state: { message: '회원가입이 완료되었습니다. 로그인해주세요.' } });
+        } catch (error) {
+            setSignUpError(error.message);
         } finally {
             setIsLoading(false);
         }
     };
 
-    if (registrationSuccess) {
-        return (
-            <div className={styles.pageContainer}>
-                <div className={styles.contentContainer}>
-                    <div className={styles.successMessage}>
-                        <div className={styles.successIcon}>
-                            <FaCheck className={styles.checkMarkIcon} />
-                        </div>
-                        <h2 className={styles.title}>회원가입 완료!</h2>
-                        <p className={styles.successText}>
-                            회원가입이 성공적으로 완료되었습니다. 이제 로그인하여 TownChat 서비스를 이용하실 수 있습니다.
-                        </p>
-                        <div className={styles.successActions}>
-                            <Link to="/signin">
-                                <Button variant="primary" fullWidth>로그인하기</Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className={styles.pageContainer}>
-            <div className={styles.contentContainer}>
-                <div className={styles.header}>
-                    <h2 className={styles.title}>회원가입</h2>
-                    <p className={styles.subtitle}>
-                        이미 계정이 있으신가요?{' '}
-                        <Link to="/signin" className={styles.link}>
-                            로그인
-                        </Link>
-                    </p>
+        <div className={styles.container}>
+            <div className={styles.innerContainer}>
+                <div className={styles.logoSection}>
+                    <img src={Logo} alt="TownChat 로고" className={styles.logo} />
+                    <div className={styles.taglineContainer}>
+                        <p className={styles.taglineMain}>소상공인들을 위한 챗봇 서비스 플랫폼</p>
+                        <p className={styles.taglineHighlight}>
+                            <span className={styles.highlight}>지금 바로</span> 회원가입하고 서비스를 이용해보세요!
+                        </p>
+                    </div>
                 </div>
 
-                {error && (
-                    <div className={styles.errorContainer}>
-                        <p className={styles.errorMessage}>{error}</p>
-                    </div>
-                )}
-
-                <SignUpForm onSubmit={handleSubmit} isLoading={isLoading} />
+                {signUpError && <div className={styles.errorMessage}>{signUpError}</div>}
+                
+                <SignUpForm
+                    onSubmit={handleSubmit(onSubmit)}
+                    register={register}
+                    errors={errors}
+                    isLoading={isLoading}
+                />
             </div>
         </div>
     );

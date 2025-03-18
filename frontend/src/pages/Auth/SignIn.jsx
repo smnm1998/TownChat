@@ -1,51 +1,81 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import SignInForm from '@components/Auth/SignInForm';
-import styles from '@components/Auth/SignInForm.module.css';
+import Logo from '@assets/Logo.svg';
+import GlobeIllustration from '@assets/SignInGlobe.svg';
+import styles from './SignIn.module.css';
 
 const SignIn = () => {
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [signInError, setSignInError] = useState('');
 
-    const handleSubmit = async (data) => {
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
+
+    const onSubmit = async (data) => {
+        setIsLoading(true);
+        setSignInError('');
         try {
-            setIsLoading(true);
-            setError(null);
-            
-            // API 호출 로직은 나중에 구현
-            console.log('로그인 데이터:', data);
-            
-            // 임시 대기 시간 (API 호출 시뮬레이션)
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // 로그인 성공 후 메인 페이지로 리다이렉트 (나중에 구현)
-        } catch (err) {
-            setError(err.message || '로그인 중 오류가 발생했습니다.');
+            const response = await fetch('/api/auth/signin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: data.email,
+                    password: data.password,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || '로그인에 실패했습니다.');
+            }
+
+            // 로그인 성공 시 토큰 저장 & 리다이렉트
+            localStorage.setItem('accessToken', result.data.accessToken);
+            localStorage.setItem('refreshToken', result.data.refreshToken);
+
+            // 메인 페이지 이동
+            navigate('/');
+        } catch (error) {
+            setSignInError(error.message);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className={styles.pageContainer}>
-            <div className={styles.contentContainer}>
-                <div className={styles.header}>
-                    <h2 className={styles.title}>로그인</h2>
-                    <p className={styles.subtitle}>
-                        계정이 없으신가요?{' '}
-                        <Link to="/signup" className={styles.link}>
-                            회원가입
-                        </Link>
-                    </p>
+        <div className={styles.container}>
+            <div className={styles.innerContainer}>
+                <div className={styles.logoSection}>
+                    <img src={Logo} alt="TownChat 로고" className={styles.logo} />
+                    <div className={styles.taglineContainer}>
+                        <p className={styles.taglineMain}>소상공인들을 위한 챗봇 서비스 플랫폼</p>
+                        <p className={styles.taglineHighlight}>
+                            <span className={styles.highlight}>언제 어디서든</span>매장의 정보를 받아보세요!
+                        </p>
+                    </div>
                 </div>
 
-                {error && (
-                    <div className={styles.errorContainer}>
-                        <p className={styles.errorMessage}>{error}</p>
-                    </div>
-                )}
+                <div className={styles.illustrationContainer}>
+                    <img src={GlobeIllustration} alt="위치 기반 서비스" className={styles.illustration} />
+                </div>
 
-                <SignInForm onSubmit={handleSubmit} isLoading={isLoading} />
+                {signInError && <div className={styles.errorMessage}>{signInError}</div>}
+                
+                <SignInForm
+                    onSubmit={handleSubmit(onSubmit)}
+                    register={register}
+                    errors={errors}
+                    isLoading={isLoading}
+                />
             </div>
         </div>
     );
