@@ -15,6 +15,13 @@ const authenticate = async (req, res, next) => {
             throw new AuthError('인증 토큰이 필요합니다.');
         }
 
+        // 토큰 추출 - 이 부분이 누락되어 있었습니다
+        const token = authHeader.split(' ')[1];
+        
+        if (!token) {
+            throw new AuthError('유효한 인증 토큰이 필요합니다.');
+        }
+
         // 토큰 검증
         const decoded = verifyToken(token);
 

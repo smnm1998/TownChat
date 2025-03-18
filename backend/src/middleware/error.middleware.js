@@ -55,7 +55,7 @@ const errorHandler = (err, req, res, next) => {
         success: false,
         error: 'InternalServerError',
         message:
-            ProcessingInstruction.env.NODE_DEV === 'production'
+            process.env.NODE_ENV === 'production'
                 ? '서버 오류가 발생했습니다.'
                 : err.message,
     });
