@@ -186,6 +186,16 @@ const getUserChatSessions = async (req, res, next) => {
     }
 };
 
+// 모든 챗봇 목록 조회
+const getAllChatbots = async (req, res, next) => {
+    try {
+        const chatbots = await chatbotService.getAllChatbots();
+        return success(res, 200, '챗봇 목록 조회 성공', chatbots);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createChatbot,
     updateChatbot,
@@ -196,4 +206,5 @@ module.exports = {
     chatWithChatbot,
     getChatHistory,
     getUserChatSessions,
+    getAllChatbots
 };

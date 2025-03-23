@@ -9,11 +9,15 @@ const {
 
 // 라우트 파일 임포트
 const authRoutes = require('./src/auth/auth.routes');
+const storeRoutes = require('./src/store/store.routes'); // 추가된 임포트
+const chatbotRoutes = require('./src/chatbot/chatbot.routes'); // 추가된 임포트
 
 const app = configureApp();
 
 // API 라우트
 app.use('/api/auth', authRoutes);
+app.use('/api/stores', storeRoutes); // 추가된 라우트
+app.use('/api/chatbots', chatbotRoutes); // 추가된 라우트
 
 // API 루트 경로
 app.get('/api', (req, res) => {
@@ -41,8 +45,8 @@ const startServer = async () => {
 
         // 모델 동기화
         if (env.NODE_ENV === 'development') {
-            await sequelize.sync({ alter: true });
-            logger.info('데이터베이스 모델 동기화 완료');
+            await sequelize.sync({ alter: true }); // alter: true 추가
+            logger.info('데이터베이스 모델 동기화 완료 (스키마 변경 포함)');
         }
 
         // 서버 시작

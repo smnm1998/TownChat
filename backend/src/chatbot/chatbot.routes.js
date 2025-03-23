@@ -3,6 +3,8 @@ const router = express.Router();
 const chatbotController = require('./chatbot.controller');
 const { authenticate, isAdmin } = require('../middleware/auth.middleware');
 
+router.get('/', authenticate, isAdmin, chatbotController.getAllChatbots);
+
 // 공개 API 라우트 (인증 불필요)
 // 점포의 챗봇 조회
 router.get('/store/:storeId', chatbotController.getChatbotByStoreId);

@@ -118,10 +118,11 @@ const getStoreById = async (storeId) => {
 };
 
 // 점포 생성
-const createStore = async (userId, storeData, imageFile = null) => {
-    // img 파일 처리
+const createStore = async (userId, storeData, files = null) => {
+    // 이미지 파일 처리
     let imageUrl = null;
-    if (imageFile) {
+    if (files && files.image && files.image[0]) {
+        const imageFile = files.image[0];
         // 업로드 폴더 경로
         const uploadDir = path.join(__dirname, '../../public/uploads/stores');
 
@@ -142,12 +143,57 @@ const createStore = async (userId, storeData, imageFile = null) => {
         imageUrl = `/uploads/stores/${fileName}`;
     }
 
+    // 지식 베이스 파일 처리
+    let knowledgeBase = storeData.knowledge_base || '';
+    if (files && files.knowledge_base_file && files.knowledge_base_file[0]) {
+        try {
+            // 텍스트 파일 읽기
+            const knowledgeFile = files.knowledge_base_file[0];
+            const knowledgeContent = knowledgeFile.buffer.toString('utf8');
+            
+            // 지식 베이스 텍스트에 파일 내용 추가
+            if (knowledgeContent) {
+                knowledgeBase += '\n\n' + knowledgeContent;
+            }
+        } catch (error) {
+            logger.error('지식 베이스 파일 처리 오류: ', error);
+            // 오류가 발생해도 계속 진행
+        }
+    }
+
     // 점포 데이터 생성
     const newStore = await Store.create({
         ...storeData,
         owner_id: userId,
-        image_url: imageUrl
+        image_url: imageUrl,
+        knowledge_base: knowledgeBase,
+        assistant_id: storeData.assistant_id || null
     });
+
+    // 점포 생성 후 자동으로 챗봇 생성
+    try {
+        logger.info(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 시작`);
+        
+        // 챗봇 생성에 필요한 데이터 준비
+        const chatbotData = {
+            store_id: newStore.id, // 추가: store_id는 필수 필드
+            name: `${newStore.name} 챗봇`,
+            greeting_message: '안녕하세요! 무엇을 도와드릴까요?',
+            model: 'gpt-4o-mini',
+            assistant_id: storeData.assistant_id || null
+        };
+        
+        // 챗봇 서비스 모듈 직접 불러오기
+        const chatbotService = require('../chatbot/chatbot.service');
+        
+        // 챗봇 생성 서비스 호출
+        const chatbot = await chatbotService.createChatbot(newStore.id, chatbotData);
+        
+        logger.info(`점포 ID ${newStore.id}에 대한 챗봇이 성공적으로 생성되었습니다. 챗봇 ID: ${chatbot.id}`);
+    } catch (error) {
+        logger.error(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 중 오류 발생:`, error);
+        // 챗봇 생성 실패해도 점포 생성은 성공으로 처리
+    }
 
     return newStore;
 }

@@ -1,9 +1,10 @@
 const { Chatbot, Store, ChatLog, User, Op } = require('../models');
 const { NotFoundError, ForbiddenError } = require('../common/errors');
 const openaiService = require('../services/openai.service');
-const logger = require('../services/logger');
+const logger = require('../utils/logger');
 
 // 점포 챗봇 생성
+// 점포 챗봇 생성 함수 수정
 const createChatbot = async (storeId, chatbotData) => {
     // 점포 존재 여부 확인
     const store = await Store.findByPk(storeId);
@@ -33,6 +34,10 @@ const createChatbot = async (storeId, chatbotData) => {
         점포 설명: ${store.description || '정보 없음'}
     `;
 
+    if (store.knowledge_base) {
+        knowledge += `\n\n[상세 정보]\n${store.knowledge_base}`;
+    }
+
     // OpenAI Assistant 생성
     const asistantInstructions = `
         당신은 ${store.name}의 챗봇 도우미입니다.
@@ -44,16 +49,22 @@ const createChatbot = async (storeId, chatbotData) => {
         ${knowledge}
     `;
 
-    let assistantId = null;
-    try {
-        assistantId = await openaiService.createAssistant(
-            chatbotName,
-            assistantInstructions,
-            chatbotData.model || 'gpt-4o-mini'
-        );
-    } catch (error) {
-        logger.error('OpenAI Assistant 생성 실패: ', error);
-        throw new Error('챗봇 생성 실패' + error.message);
+    // 이미 존재하는 assistant_id 사용 또는 새로 생성
+    let assistantId = chatbotData.assistant_id || store.assistant_id || null;
+    
+    if (!assistantId) {
+        try {
+            assistantId = await openaiService.createAssistant(
+                chatbotName,
+                asistantInstructions,
+                chatbotData.model || 'gpt-4o-mini'
+            );
+        } catch (error) {
+            logger.error('OpenAI Assistant 생성 실패: ', error);
+            throw new Error('챗봇 생성 실패: ' + error.message);
+        }
+    } else {
+        logger.info(`기존 Assistant ID를 사용합니다: ${assistantId}`);
     }
 
     // 챗봇 데이터베이스에 저장
@@ -61,7 +72,7 @@ const createChatbot = async (storeId, chatbotData) => {
         store_id: storeId,
         name: chatbotName,
         knowledge_base: knowledge,
-        greeting_message: chatbotData.greeting_message|| '안녕하세요! 무엇을 도와드릴까요?',
+        greeting_message: chatbotData.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
         model: chatbotData.model || 'gpt-4o-mini',
         is_active: true,
         assistant_id: assistantId,
@@ -70,6 +81,87 @@ const createChatbot = async (storeId, chatbotData) => {
     
     return newChatbot;
 };
+
+const chatbotService = require('../chatbot/chatbot.service');
+
+// createStore 함수 수정
+const createStore = async (userId, storeData, files = null) => {
+    // 이미지 파일 처리
+    let imageUrl = null;
+    if (files && files.image && files.image[0]) {
+        const imageFile = files.image[0];
+        // 업로드 폴더 경로
+        const uploadDir = path.join(__dirname, '../../public/uploads/stores');
+
+        // 폴더 X -> 생성
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        // 타임스탬프 + 원본 파일명 생성
+        const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s/g, '_')}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        // 파일 저장
+        const writeFile = util.promisify(fs.writeFile);
+        await writeFile(filePath, imageFile.buffer);
+
+        // 저장된 img URL 설정
+        imageUrl = `/uploads/stores/${fileName}`;
+    }
+
+    // 지식 베이스 파일 처리
+    let knowledgeBase = storeData.knowledge_base || '';
+    if (files && files.knowledge_base_file && files.knowledge_base_file[0]) {
+        try {
+            // 텍스트 파일 읽기
+            const knowledgeFile = files.knowledge_base_file[0];
+            const knowledgeContent = knowledgeFile.buffer.toString('utf8');
+            
+            // 지식 베이스 텍스트에 파일 내용 추가
+            if (knowledgeContent) {
+                knowledgeBase += '\n\n' + knowledgeContent;
+            }
+        } catch (error) {
+            logger.error('지식 베이스 파일 처리 오류: ', error);
+            // 오류가 발생해도 계속 진행
+        }
+    }
+
+    // 점포 데이터 생성
+    const newStore = await Store.create({
+        ...storeData,
+        owner_id: userId,
+        image_url: imageUrl,
+        knowledge_base: knowledgeBase,
+        // assistant_id 필드가 있다면 저장 (OpenAI에서 직접 생성한 Assistant ID)
+        assistant_id: storeData.assistant_id || null
+    });
+
+    // 점포 생성 후 자동으로 챗봇 생성
+    try {
+        logger.info(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 시작`);
+        
+        // 챗봇 생성에 필요한 데이터 준비
+        const chatbotData = {
+            name: `${newStore.name} 챗봇`,
+            greeting_message: '안녕하세요! 무엇을 도와드릴까요?',
+            model: 'gpt-4o-mini',
+            // 점포에 assistant_id가 있으면 그것을 사용
+            assistant_id: newStore.assistant_id || null
+        };
+        
+        // 챗봇 생성 서비스 호출
+        const chatbot = await chatbotService.createChatbot(newStore.id, chatbotData);
+        
+        logger.info(`점포 ID ${newStore.id}에 대한 챗봇이 성공적으로 생성되었습니다. 챗봇 ID: ${chatbot.id}`);
+    } catch (error) {
+        logger.error(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 중 오류 발생:`, error);
+        // 챗봇 생성 실패해도 점포 생성은 성공으로 처리
+    }
+
+    return newStore;
+}
 
 // 점포 챗봇 업데이트
 const updateChatbot = async (chatbotId, userId, updateData) => {
@@ -338,6 +430,20 @@ const getChatHistory = async (chatbotId, sessionId, options = {}) => {
     return { chatlogs: rows, pagination };
 };
 
+// 모든 챗봇 목록 조회
+const getAllChatbots = async () => {
+    const chatbots = await Chatbot.findAll({
+        include: [
+            {
+                model: Store,
+                attributes: ['id', 'name', 'address', 'phone', 'description', 'owner_name'],
+            },
+        ],
+    });
+    
+    return chatbots;
+};
+
 // 대화 세션
 const getUserChatSessions = async (userId, options = {}) => {
     const { page = 1, limit = 10 } = options;
@@ -406,4 +512,5 @@ module.exports = {
     chatWithChatbot,
     getChatHistory,
     getUserChatSessions,
+    getAllChatbots
 };

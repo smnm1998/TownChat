@@ -76,7 +76,7 @@ const Store = sequelize.define(
         },
 
         assistant_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING(255), // Changed from INTEGER to STRING
             allowNull: true,
             comment: 'OpenAI Assistant API 식별자',
         },
