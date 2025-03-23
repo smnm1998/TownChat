@@ -27,6 +27,7 @@ const verifyToken = (token, isRefreshToken = false) => {
             : env.JWT_SECRET;
         return jwt.verify(token, secret);
     } catch (error) {
+        console.error('Token Verification error: ', error);
         return null;
     }
 };

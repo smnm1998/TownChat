@@ -74,16 +74,21 @@ const signOut = async (req, res, next) => {
 // 현재 사용자 정보 조회 컨트롤러
 const getCurrentUser = async (req, res, next) => {
     try {
-        // 인증 미들웨어에서 설정한 req.user 사용
+        // 로깅 추가
+        console.log('현재 사용자:', req.user);
+
         return success(res, 200, '사용자 정보 조회 성공', {
             user: {
                 id: req.user.id,
                 username: req.user.username,
                 email: req.user.email,
                 phone: req.user.phone,
+                role: req.user.role,
+                isAdmin: req.user.role === 'admin'
             },
         });
     } catch (error) {
+        console.error('사용자 정보 조회 중 오류:', error);
         next(error);
     }
 };

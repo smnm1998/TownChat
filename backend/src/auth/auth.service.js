@@ -62,6 +62,7 @@ const signUp = async (userData) => {
             id: newUser.id,
             username: newUser.username,
             email: newUser.email,
+            role: newUser.role,
         },
         accessToken,
         refreshToken,
@@ -77,12 +78,20 @@ const signIn = async (email, password) => {
         throw new AuthError('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
 
+    console.log('DB에 저장된 사용자:', user.id, user.email);
+    console.log('DB에 저장된 해시 비밀번호:', user.password);
+    console.log('입력한 비밀번호:', password);
+
     // 비밀번호 검증
     const isPasswordValid = await user.validatePassword(password);
+    console.log('비밀번호 검증 결과:', isPasswordValid);
 
     if (!isPasswordValid) {
         throw new AuthError('이메일 또는 비밀번호가 일치하지 않습니다.');
     }
+    
+    // 로그인 성공 시 사용자 정보 출력
+    console.log('로그인 성공! 사용자 역할:', user.role);
 
     // 토큰 페이로드
     const tokenPayload = { id: user.id, email: user.email };
@@ -111,6 +120,7 @@ const signIn = async (email, password) => {
             id: user.id,
             username: user.username,
             email: user.email,
+            role: user.role,
         },
         accessToken,
         refreshToken,

@@ -55,9 +55,15 @@ User.beforeCreate(async (user) => {
     user.password = await bcrypt.hash(user.password, salt);
 });
 
-// 비밀번호 검증
 User.prototype.validatePassword = async function (password) {
-    return await bcrypt.compare(password, this.password);
+    console.log('비밀번호 검증 호출');
+    console.log('저장된 해시:', this.password);
+    console.log('입력 비밀번호:', password);
+    
+    const result = await bcrypt.compare(password, this.password);
+    console.log('bcrypt.compare 결과:', result);
+    
+    return result;
 };
 
 module.exports = User;
