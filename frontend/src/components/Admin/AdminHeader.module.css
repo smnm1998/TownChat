@@ -1,0 +1,35 @@
+.header {
+    @apply flex items-center justify-between bg-white px-6 py-4 border-b border-gray-200;
+}
+
+.headerLeft {
+    @apply flex items-center;
+}
+
+.menuButton {
+    @apply p-2 rounded-md text-gray-500 hover:bg-gray-100 mr-4 lg:hidden;
+}
+
+.pageTitle {
+    @apply text-xl font-semibold text-gray-800;
+}
+
+.headerRight {
+    @apply flex items-center;
+}
+
+.notificationButton {
+    @apply p-2 rounded-md text-gray-500 hover:bg-gray-100 mr-4 relative;
+}
+
+.userInfo {
+    @apply flex flex-col items-end;
+}
+
+.welcomeText {
+    @apply text-sm text-gray-500;
+}
+
+.username {
+    @apply font-medium text-gray-800;
+}

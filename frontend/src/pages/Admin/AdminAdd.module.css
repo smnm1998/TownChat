@@ -1,0 +1,30 @@
+.container {
+    @apply w-full max-w-6xl mx-auto;
+}
+
+.pageHeader {
+    @apply mb-8;
+}
+
+.pageTitle {
+    @apply text-2xl font-bold text-gray-800 mb-2;
+}
+
+.pageDescription {
+    @apply text-gray-600;
+}
+
+.formContainer {
+    @apply bg-white rounded-lg shadow-sm;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+    .container {
+        @apply px-4;
+    }
+    
+    .pageTitle {
+        @apply text-xl;
+    }
+}

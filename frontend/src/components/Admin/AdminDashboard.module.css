@@ -1,0 +1,39 @@
+.dashboard {
+    @apply w-full;
+}
+
+.title {
+    @apply text-2xl font-bold text-gray-800 mb-6;
+}
+
+.statsGrid {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+}
+
+.statCard {
+    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-100;
+}
+
+.statTitle {
+    @apply text-sm font-medium text-gray-500 mb-2;
+}
+
+.statValue {
+    @apply text-3xl font-bold text-gray-800;
+}
+
+.recentActivity {
+    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-100;
+}
+
+.sectionTitle {
+    @apply text-lg font-medium text-gray-800 mb-4;
+}
+
+.emptyState {
+    @apply text-gray-500 text-center py-8;
+}
+
+.loading {
+    @apply flex items-center justify-center h-64 text-gray-500;
+}
