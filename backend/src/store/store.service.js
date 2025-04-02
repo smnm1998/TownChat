@@ -1,13 +1,14 @@
-const { Store, User, Op } = require('../models');
-const { NotFoundError, ForbidenError } = require('../common/errors');
+const { Store, User, Chatbot, Op } = require('../models');
+const { NotFoundError, ForbiddenError } = require('../common/errors');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const logger = require('../utils/logger');
+const openaiService = require('../services/openai.service');
 
 // 모든 점포 목록 조회
 const getAllStores = async (option = {}) => {
-    const { page = 1, limit = 10, search = null, active = null, userId = null } = options;
+    const { page = 1, limit = 10, search = null, active = null, userId = null } = option;
 
     const offset = (page - 1) * limit;
     const whereClause = {};
@@ -65,7 +66,7 @@ const getNearbyStores = async (latitude, longitude, radiusKm = 5, options = {}) 
     const offset = (page - 1) * limit;
 
     // 간단한 근사치 계산으로 구현
-    const latDelta = radiustKm / 111;
+    const latDelta = radiusKm / 111;
     const lngDelta = radiusKm / (111 * Math.cos(latitude * (Math.PI / 180)));
 
     const minLat = latitude - latDelta;
@@ -101,7 +102,7 @@ const getNearbyStores = async (latitude, longitude, radiusKm = 5, options = {}) 
 
 // 특정 점포 상세 조회
 const getStoreById = async (storeId) => {
-    const store = await Store.findByPk(id, {
+    const store = await Store.findByPk(storeId, {
         include: [
             {
                 model: User,
@@ -176,11 +177,12 @@ const createStore = async (userId, storeData, files = null) => {
         
         // 챗봇 생성에 필요한 데이터 준비
         const chatbotData = {
-            store_id: newStore.id, // 추가: store_id는 필수 필드
+            store_id: newStore.id,
             name: `${newStore.name} 챗봇`,
             greeting_message: '안녕하세요! 무엇을 도와드릴까요?',
             model: 'gpt-4o-mini',
-            assistant_id: storeData.assistant_id || null
+            assistant_id: storeData.assistant_id || null,
+            knowledge_base: knowledgeBase
         };
         
         // 챗봇 서비스 모듈 직접 불러오기
@@ -196,10 +198,10 @@ const createStore = async (userId, storeData, files = null) => {
     }
 
     return newStore;
-}
+};
 
 // 점포 정보 업데이트
-const updateStore = async (id, userId, updateData, imageFile = null) => {
+const updateStore = async (id, userId, updateData, files = null) => {
     const store = await Store.findByPk(id);
 
     if (!store) {
@@ -211,12 +213,16 @@ const updateStore = async (id, userId, updateData, imageFile = null) => {
         throw new ForbiddenError('해당 점포를 수정할 권한이 없습니다.');
     }
 
-    // img 파일 처리
-    if (imageFile) {
-        // 기존 img 파일 삭제 (존재할 경우)
+    // 이미지 파일 처리
+    console.log('Files object in updateStore:', files);
+    if (files && files.image && files.image[0]) {
+        const imageFile = files.image[0];
+        console.log('Processing image file:', imageFile.originalname);
+        
+        // 기존 이미지 파일 삭제 (존재할 경우)
         if (store.image_url) {
             try {
-                const oldImagePath = path.join(__dirname, '../../public', store.iamge_url);
+                const oldImagePath = path.join(__dirname, '../../public', store.image_url);
                 if (fs.existsSync(oldImagePath)) {
                     fs.unlinkSync(oldImagePath);
                 }
@@ -224,26 +230,81 @@ const updateStore = async (id, userId, updateData, imageFile = null) => {
                 logger.error('기존 이미지 파일 삭제 실패: ', error);
             }
         }
-
-        // 폴더 x -> 생성
+        
+        // 업로드 폴더 경로
+        const uploadDir = path.join(__dirname, '../../public/uploads/stores');
+        
+        // 폴더가 없으면 생성
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
-
-        // 타임스탬프 + 원본 파일명 생성
+        
+        // 파일명 생성
         const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s/g, '_')}`;
         const filePath = path.join(uploadDir, fileName);
-
+        
         // 파일 저장
         const writeFile = util.promisify(fs.writeFile);
-        await writeFile(filePath, imageFile.buffer);
+        try {
+            await writeFile(filePath, imageFile.buffer);
+            console.log('Image saved successfully to:', filePath);
+            updateData.image_url = `/uploads/stores/${fileName}`;
+        } catch (fileError) {
+            console.error('Image file save error:', fileError);
+        }
+    }
 
-        // 저장 이미지 URL 설정
-        updateData.image_url = `/uploads/stores/${fileName}`;
+    // 지식 베이스 파일 처리
+    if (files && files.knowledge_base_file && files.knowledge_base_file[0]) {
+        try {
+            // 텍스트 파일 읽기
+            const knowledgeFile = files.knowledge_base_file[0];
+            const knowledgeContent = knowledgeFile.buffer.toString('utf8');
+            
+            // 지식 베이스 텍스트 설정 (기존 내용 대체)
+            if (knowledgeContent) {
+                updateData.knowledge_base = knowledgeContent;
+                logger.info(`점포 ID ${id}의 지식 베이스 업데이트, 길이: ${knowledgeContent.length}`);
+            }
+        } catch (error) {
+            logger.error('지식 베이스 파일 처리 오류: ', error);
+        }
     }
 
     // 점포 정보 업데이트
     await store.update(updateData);
+    
+    // 챗봇 지식 베이스도 업데이트 (연동)
+    try {
+        // 연결된 챗봇 찾기
+        const chatbotService = require('../chatbot/chatbot.service');
+        const chatbot = await Chatbot.findOne({ where: { store_id: id } });
+        
+        if (chatbot && updateData.knowledge_base) {
+            await chatbot.update({
+                knowledge_base: updateData.knowledge_base,
+                last_updated: new Date()
+            });
+            
+            // OpenAI Assistant 업데이트
+            const assistantInstructions = `
+                당신은 '${store.name}'의 챗봇 도우미입니다. 
+                고객들에게 친절하고 정확한 정보를 제공해주세요.
+                항상 공손하고 전문적인 태도를 유지하세요.
+                제공된 정보를 기반으로 질문에 답변하되, 모르는 내용에 대해서는 솔직하게 모른다고 말하세요.
+                
+                다음은 지식 베이스 내용입니다:
+                ${updateData.knowledge_base}
+            `;
+            
+            await openaiService.updateAssistant(chatbot.assistant_id, {
+                instructions: assistantInstructions
+            });
+        }
+    } catch (error) {
+        logger.error('챗봇 지식 베이스 업데이트 실패:', error);
+        // 챗봇 업데이트 실패해도 점포 업데이트는 성공으로 처리
+    }
 
     return await Store.findByPk(id);
 };
@@ -275,7 +336,12 @@ const deleteStore = async (id, userId) => {
 
     // OpenAI Assistant ID가 있는 경우
     if (store.assistant_id) {
-
+        // Assistant ID가 있으면 OpenAI에서도 삭제 처리
+        try {
+            await openaiService.deleteAssistant(store.assistant_id);
+        } catch (error) {
+            logger.error('OpenAI Assistant 삭제 실패', error);
+        }
     }
 
     // 점포 삭제

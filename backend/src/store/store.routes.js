@@ -22,10 +22,13 @@ const upload = multer({
     }
 });
 
-// 공개 API Route (인증 x)
-// 더 구체적인 라우트를 먼저 배치
-router.get('/nearby', storeController.getNearbyStores);
+// 라우트 순서 배치 (더 구체적인 경로를 먼저 배치)
+
+// 사용자의 점포 목록 조회 - 경로 수정
 router.get('/user/stores', authenticate, storeController.getUserStores);
+
+// 근처 점포 검색
+router.get('/nearby', storeController.getNearbyStores);
 
 // 점포 생성 - 여러 파일 필드 처리
 router.post(
