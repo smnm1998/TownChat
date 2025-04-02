@@ -13,7 +13,7 @@ const success = (res, statusCode = 200, message = 'Success', data = null) => {
 };
 
 // 페이지네이션
-const paginate = (res, items, pagination, mesage = 'Success') => {
+const paginate = (res, items, pagination, message = 'Success') => {
     return res.status(200).json({
         success: true,
         message,
