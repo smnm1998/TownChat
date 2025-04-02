@@ -182,7 +182,6 @@ const signOut = async (userId, refreshToken) => {
             where: {
                 user_id: userId,
                 token: refreshToken,
-                is_revoked: false,
             },
         }
     );

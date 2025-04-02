@@ -45,7 +45,6 @@ const startServer = async () => {
 
         // 모델 동기화
         if (env.NODE_ENV === 'development') {
-            await sequelize.sync({ alter: true }); // alter: true 추가
             logger.info('데이터베이스 모델 동기화 완료 (스키마 변경 포함)');
         }
 
