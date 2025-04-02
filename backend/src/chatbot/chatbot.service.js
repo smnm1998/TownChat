@@ -4,7 +4,7 @@ const openaiService = require('../services/openai.service');
 const logger = require('../utils/logger');
 
 // 점포 챗봇 생성
-// 점포 챗봇 생성 함수 수정
+// 점포 챗봇 생성 함수 수정 
 const createChatbot = async (storeId, chatbotData) => {
     // 점포 존재 여부 확인
     const store = await Store.findByPk(storeId);
@@ -24,19 +24,8 @@ const createChatbot = async (storeId, chatbotData) => {
     // 기본 챗봇 설정
     const chatbotName = chatbotData.name || `${store.name} 챗봇`;
 
-    // 지식 베이스 생성 (점포 정보 + 제공된 지식 베이스)
-    let knowledge = `
-        [점포 정보]
-        점포명 : ${store.name}
-        주소 : ${store.address}
-        전화번호: ${store.phone || '정보 없음'}
-        점주명: ${store.owner_name}
-        점포 설명: ${store.description || '정보 없음'}
-    `;
-
-    if (store.knowledge_base) {
-        knowledge += `\n\n[상세 정보]\n${store.knowledge_base}`;
-    }
+    // 지식 베이스는 사용자가 제공한 텍스트 파일 내용만 사용
+    let knowledge = chatbotData.knowledge_base || '';
 
     // OpenAI Assistant 생성
     const asistantInstructions = `
@@ -45,12 +34,12 @@ const createChatbot = async (storeId, chatbotData) => {
         항상 공손하고 전문적인 태도를 유지하세요.
         제공된 지식 베이스 정보를 기반으로 질문에 답변하되, 모르는 내용에 대해서는 솔직하게 모른다고 말하세요.
 
-        다음은 점포에 대한 정보입니다.
+        다음은 지식 베이스 내용입니다:
         ${knowledge}
     `;
 
     // 이미 존재하는 assistant_id 사용 또는 새로 생성
-    let assistantId = chatbotData.assistant_id || store.assistant_id || null;
+    let assistantId = chatbotData.assistant_id || null;
     
     if (!assistantId) {
         try {
@@ -71,7 +60,7 @@ const createChatbot = async (storeId, chatbotData) => {
     const newChatbot = await Chatbot.create({
         store_id: storeId,
         name: chatbotName,
-        knowledge_base: knowledge,
+        knowledge_base: knowledge,  // 사용자가 제공한 지식 베이스만 저장
         greeting_message: chatbotData.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
         model: chatbotData.model || 'gpt-4o-mini',
         is_active: true,
@@ -163,7 +152,6 @@ const createStore = async (userId, storeData, files = null) => {
     return newStore;
 }
 
-// 점포 챗봇 업데이트
 const updateChatbot = async (chatbotId, userId, updateData) => {
     // 챗봇 존재 여부 확인
     const chatbot = await Chatbot.findByPk(chatbotId, {
@@ -184,19 +172,8 @@ const updateChatbot = async (chatbotId, userId, updateData) => {
         throw new ForbiddenError('해당 챗봇을 수정할 권한이 없습니다.');
     }
 
-    // 지식 베이스 업데이트 (기본 점포 정보 + 새로운 지식 베이스)
-    let newKnowledge = `
-        [점포 정보]
-        점포명: ${chatbot.Store.name}
-        주소: ${chatbot.Store.address}
-        전화번호: ${chatbot.Store.phone || '정보 없음'}
-        점주명: ${chatbot.Store.owner_name}
-        점포 설명: ${chatbot.Store.description || '정보 없음'}
-    `;
-
-    if (updateData.knowledge_base) {
-        newKnowledge += `\n\n[상세 정보]\n${updateData.knowledge_base}`;
-    }
+    // 지식 베이스는 사용자가 제공한 내용만 사용
+    let newKnowledge = updateData.knowledge_base || chatbot.knowledge_base;
 
     // OpenAI Assistant 설정 업데이트
     const assistantInstructions = `
@@ -205,7 +182,7 @@ const updateChatbot = async (chatbotId, userId, updateData) => {
         항상 공손하고 전문적인 태도를 유지하세요.
         제공된 정보를 기반으로 질문에 답변하되, 모르는 내용에 대해서는 솔직하게 모른다고 말하세요.
         
-        다음은 점포에 대한 정보입니다:
+        다음은 지식 베이스 내용입니다:
         ${newKnowledge}
     `;
 
@@ -224,7 +201,7 @@ const updateChatbot = async (chatbotId, userId, updateData) => {
     // 챗봇 데이터베이스 업데이트
     await chatbot.update({
         name: updateData.name || chatbot.name,
-        knowledge_base: newKnowledge,
+        knowledge_base: newKnowledge, // 사용자가 제공한 지식 베이스만 저장
         greeting_message: updateData.greeting_message || chatbot.greeting_message,
         model: updateData.model || chatbot.model,
         last_updated: new Date(),
@@ -239,7 +216,7 @@ const deleteChatbot = async (chatbotId, userId) => {
     const chatbot = await Chatbot.findByPk(chatbotId, {
         include: [
             {
-                model: store,
+                model: Store,
                 attributes: ['id', 'owner_id'],
             },
         ],
@@ -262,9 +239,17 @@ const deleteChatbot = async (chatbotId, userId) => {
         logger.error('assistant 삭제 실패', error); // 어시스턴트 삭제 실패해도 DB에서는 삭제 진행
     }
 
-    // DB에서 삭제
+    // 챗봇 삭제 
     await chatbot.destroy();
-
+    
+    // 연결된 스토어도 삭제
+    if (chatbot.Store && chatbot.Store.id) {
+        const store = await Store.findByPk(chatbot.Store.id);
+        if (store) {
+            await store.destroy();
+        }
+    }
+    
     return true;
 };
 
