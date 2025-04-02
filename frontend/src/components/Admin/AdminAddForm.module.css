@@ -20,7 +20,9 @@
 
 .fileSize {
     @apply text-xs text-gray-500 ml-2;
-}.container {
+}
+
+.container {
     @apply w-full max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-sm;
 }
 
@@ -117,7 +119,11 @@
 }
 
 .submitButtonWrapper {
-    @apply mt-8 flex justify-end;
+    @apply mt-8 flex justify-end space-x-4;
+}
+
+.cancelButton {
+    @apply px-6 py-3 bg-gray-100 text-gray-800 rounded-md font-medium hover:bg-gray-200 transition-colors;
 }
 
 .submitButton {

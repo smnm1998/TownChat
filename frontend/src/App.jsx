@@ -5,7 +5,8 @@ import SignUp from '@pages/Auth/SignUp';
 import AdminSignIn from '@pages/Admin/AdminSignIn';
 import AdminLayout from '@components/Layouts/AdminLayout';
 import AdminDashboard from '@components/Admin/AdminDashboard';
-import AdminAdd from '@pages/Admin/AdminAdd'; // 추가된 임포트
+import AdminAdd from '@pages/Admin/AdminAdd';
+import AdminEdit from '@pages/Admin/AdminEdit'; // 새로 추가된 임포트
 import AdminChatbots from '@components/Admin/AdminChatbots';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
                     <Route path="dashboard" element={<AdminDashboard />} />
                     <Route path="stores/add" element={<AdminAdd />} /> {/* 등록하기 라우트 */}
                     <Route path="chatbots" element={<AdminChatbots />} /> {/* 챗봇관리 라우트 */}
+                    <Route path="chatbots/:id/edit" element={<AdminEdit />} /> {/* 수정하기 라우트 추가 */}
                     <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 </Route>
                 

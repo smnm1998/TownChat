@@ -22,16 +22,80 @@
     @apply text-3xl font-bold text-gray-800;
 }
 
-.recentActivity {
-    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-100;
+.storesSection {
+    @apply bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8;
+}
+
+.sectionHeader {
+    @apply flex justify-between items-center mb-6;
 }
 
 .sectionTitle {
-    @apply text-lg font-medium text-gray-800 mb-4;
+    @apply text-lg font-medium text-gray-800;
+}
+
+.addButton {
+    @apply px-4 py-2 bg-yellow-400 text-black rounded-md text-sm font-medium hover:bg-yellow-500 transition-colors;
+}
+
+.storeGrid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.storeCard {
+    @apply p-4 border border-gray-200 rounded-lg;
+}
+
+.storeHeader {
+    @apply flex justify-between items-start mb-2;
+}
+
+.storeName {
+    @apply font-medium text-gray-800;
+}
+
+.statusBadge {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.statusActive {
+    @apply bg-green-100 text-green-700;
+}
+
+.statusInactive {
+    @apply bg-gray-100 text-gray-600;
+}
+
+.storeAddress {
+    @apply text-sm text-gray-500 mb-4;
+}
+
+.storeActions {
+    @apply flex flex-wrap gap-2 mt-2;
+}
+
+.actionButton {
+    @apply flex items-center justify-center text-xs font-medium py-1.5 px-2 rounded border border-gray-300 hover:bg-gray-50 transition-colors;
+}
+
+.editButton {
+    @apply flex items-center justify-center text-xs font-medium py-1.5 px-2 rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors;
+}
+
+.deleteButton {
+    @apply flex items-center justify-center text-xs font-medium py-1.5 px-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors;
+}
+
+.actionIcon {
+    @apply mr-1;
 }
 
 .emptyState {
     @apply text-gray-500 text-center py-8;
+}
+
+.errorMessage {
+    @apply text-red-500 mb-4;
 }
 
 .loading {

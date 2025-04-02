@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FiUpload } from 'react-icons/fi';
 import styles from './AdminAddForm.module.css';
 
-const AdminAddForm = () => {
+const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) => {
+    const navigate = useNavigate();
+    const { id } = useParams();
     const [previewImage, setPreviewImage] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [addressDetail, setAddressDetail] = useState('');
@@ -19,10 +22,50 @@ const AdminAddForm = () => {
         formState: { errors },
         watch,
         setValue,
-        clearErrors
+        clearErrors,
+        reset
     } = useForm();
 
     const imageFile = watch('image');
+
+    // 편집 모드에서 초기 데이터 설정
+    useEffect(() => {
+        if (isEditMode && storeData) {
+            // 주소 처리 - 주소와 상세주소 분리
+            const addressParts = storeData.address ? storeData.address.split(',') : ['', ''];
+            const mainAddress = addressParts[0].trim();
+            const detailAddress = addressParts.length > 1 ? addressParts.slice(1).join(',').trim() : '';
+            
+            // 폼 데이터 설정
+            setValue('name', storeData.name || '');
+            setValue('address', mainAddress);
+            setValue('address_detail', detailAddress);
+            setValue('phone', storeData.phone || '');
+            setValue('description', storeData.description || '');
+            setValue('owner_name', storeData.owner_name || '');
+            setValue('owner_phone', storeData.owner_phone || '');
+            setValue('assistant_id', storeData.assistant_id || '');
+            
+            // 주소 상태 설정
+            setAddressDetail(mainAddress);
+            setAddressSelected(!!mainAddress);
+            
+            // 위치 데이터 설정
+            if (storeData.latitude && storeData.longitude) {
+                setGeocodeData({
+                    latitude: storeData.latitude,
+                    longitude: storeData.longitude
+                });
+            }
+            
+            // 이미지 미리보기 설정
+            if (storeData.image_url) {
+                setPreviewImage(storeData.image_url.startsWith('http') 
+                    ? storeData.image_url 
+                    : `${window.location.origin}${storeData.image_url}`);
+            }
+        }
+    }, [isEditMode, storeData, setValue]);
 
     // Daum 우편번호 스크립트 로드
     useEffect(() => {
@@ -112,12 +155,11 @@ const AdminAddForm = () => {
                 formData.append('knowledge_base_file', data.knowledge_base_file[0]);
                 
                 // 파일 내용을 읽어서 지식 베이스 텍스트로 추가
-                // 서버가 파일을 처리하지 않는 경우를 대비
                 try {
                     const fileReader = new FileReader();
                     fileReader.onload = async (e) => {
                         const content = e.target.result;
-                        formData.append('knowledge_base', content);
+                        formData.append('knowledge_base', content); // 이 부분이 중요합니다
                         
                         // 파일 읽기 완료 후 폼 제출 계속
                         await submitFormData(formData, data);
@@ -128,13 +170,10 @@ const AdminAddForm = () => {
                     // 파일 읽기 실패해도 계속 제출
                     await submitFormData(formData, data);
                 }
-            } else {
-                // 파일이 없는 경우 바로 제출
-                await submitFormData(formData, data);
             }
         } catch (error) {
-            console.error('점포 등록 오류: ', error);
-            alert(error.message || '점포 등록 중 오류가 발생했습니다.');
+            console.error(isEditMode ? '점포 수정 오류: ' : '점포 등록 오류: ', error);
+            alert(error.message || `점포 ${isEditMode ? '수정' : '등록'} 중 오류가 발생했습니다.`);
         } finally {
             setIsLoading(false);
         }
@@ -153,32 +192,36 @@ const AdminAddForm = () => {
         formData.append('description', data.description || '');
         formData.append('owner_name', data.owner_name);
         formData.append('owner_phone', data.owner_phone || '');
-    
+
         // 위도-경도 추가
         if (geocodeData.latitude && geocodeData.longitude) {
             formData.append('latitude', geocodeData.latitude);
             formData.append('longitude', geocodeData.longitude);
         }
-        
-        // 여기서 assistant_id 추가 (fetch 전에)
+
         if (data.assistant_id) {
             formData.append('assistant_id', data.assistant_id);
         }
-    
+
         const token = localStorage.getItem('accessToken');
         
-        const response = await fetch('/api/stores', {
-            method: 'POST',
+        // API 엔드포인트와 메서드 설정 (수정 또는 등록)
+        const endpoint = isEditMode ? `/api/stores/${storeId || id}` : '/api/stores';
+
+        const method = isEditMode ? 'PUT' : 'POST';
+        
+        const response = await fetch(endpoint, {
+            method: method,
             headers: {
                 'Authorization': `Bearer ${token}`
                 // Content-Type은 자동으로 설정되므로 지정하지 않음
             },
             body: formData
         });
-    
+
         // 응답 분석
         if (!response.ok) {
-            let errorMessage = '점포 등록에 실패했습니다.';
+            let errorMessage = `점포 ${isEditMode ? '수정' : '등록'}에 실패했습니다.`;
             try {
                 const errorData = await response.json();
                 errorMessage = errorData.message || errorMessage;
@@ -187,19 +230,19 @@ const AdminAddForm = () => {
             }
             throw new Error(errorMessage);
         }
-    
+
         const result = await response.json();
         
         // 성공
-        alert('점포가 성공적으로 등록되었습니다.');
+        alert(`점포가 성공적으로 ${isEditMode ? '수정' : '등록'}되었습니다.`);
         
-        // 성공 후 추가 동작 (예: 페이지 이동)
-        window.location.href = '/admin/dashboard';
+        // 성공 후 대시보드로 이동
+        navigate('/admin/dashboard');
     };
 
     return (
         <div className={styles.container}>
-            <h2 className={styles.pageTitle}>새 점포 등록</h2>
+            <h2 className={styles.pageTitle}>{isEditMode ? '점포 정보 수정' : '새 점포 등록'}</h2>
 
             <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
                 <div className={styles.formGrid}>
@@ -355,6 +398,7 @@ const AdminAddForm = () => {
                     </div>
                     <p className={styles.helpText}>
                         챗봇이 질문에 답변할 때 참고할 텍스트 파일을 업로드해주세요. (.txt 파일만 가능)
+                        {isEditMode && ' 파일을 업로드하지 않으면 기존 지식 베이스가 유지됩니다.'}
                     </p>
                 </div>
 
@@ -371,7 +415,7 @@ const AdminAddForm = () => {
                         />
                         <label htmlFor="image" className={styles.imageUploadLabel}>
                             <FiUpload className={styles.uploadIcon} />
-                            <span>이미지 업로드</span>
+                            <span>{isEditMode ? '이미지 변경' : '이미지 업로드'}</span>
                         </label>
                         {previewImage && (
                             <div className={styles.imagePreview}>
@@ -379,14 +423,24 @@ const AdminAddForm = () => {
                             </div>
                         )}
                     </div>
+                    {isEditMode && (
+                        <p className={styles.helpText}>
+                            이미지를 업로드하지 않으면 기존 이미지가 유지됩니다.
+                        </p>
+                    )}
                 </div>
 
                 <div className={styles.submitButtonWrapper}>
                     <button
+                        type="button"
+                        className={styles.cancelButton}
+                        onClick={() => navigate('/admin/dashboard')}
+                    >취소</button>
+                    <button
                         type="submit"
                         className={styles.submitButton}
                         disabled={isLoading}
-                    >{isLoading ? '등록 중...' : '점포 등록'}</button>
+                    >{isLoading ? '처리 중...' : isEditMode ? '점포 수정' : '점포 등록'}</button>
                 </div>
             </form>
         </div>
