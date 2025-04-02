@@ -34,7 +34,7 @@ const getUserStores = async (req, res, next) => {
 
         return paginate(res, stores, pagination, '내 점포 목록 조회 성공');
     } catch (error) {
-        nest(error);
+        next(error);
     }
 };
 
@@ -98,19 +98,18 @@ const createStore = async (req, res, next) => {
 const updateStore = async (req, res, next) => {
     try {
         const storeId = req.params.id;
-
-        // 입력 데이터 검증
-        validateUpdateStore(req.body);
-
-        // 점포 업데이트
+        
+        console.log("Files received:", req.files); // 로그 추가
+        
+        // updateStore 함수에 파일 객체 전달
         const updatedStore = await storeService.updateStore(
             storeId,
             req.user.id,
             req.body,
-            req.file
+            req.files // files 객체 전체 전달
         );
-
-        return success(res, 200, '점포 정보가 성공적으로 업데이트되었습니다.', updateStore);
+        
+        return success(res, 200, '점포 정보가 성공적으로 업데이트되었습니다.', updatedStore);
     } catch (error) {
         next(error);
     }
