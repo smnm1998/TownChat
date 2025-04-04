@@ -1,0 +1,33 @@
+.navbar {
+    @apply fixed bottom-0 left-0 right-0 border-t border-gray-200 flex items-center justify-around px-2 py-4 z-10;
+    background-color: #505050;
+}
+
+.navItem {
+    @apply flex flex-col items-center justify-center w-full h-full;
+}
+
+.navItemCenter {
+    @apply flex justify-center items-center w-full h-full relative -mt-6;
+}
+
+.navIcon {
+    @apply w-8 h-8 text-xl mb-1 text-white;
+}
+
+.navText {
+    @apply text-xs text-white;
+}
+
+.active .navIcon,
+.active .navText {
+    @apply text-yellow-400;
+}
+
+.addButton {
+    @apply flex items-center justify-center w-20 h-20 rounded-full bg-white border-4 border-yellow-600 shadow-lg;
+}
+
+.addIcon {
+    @apply text-gray-800 text-3xl;
+}

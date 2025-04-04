@@ -1,0 +1,59 @@
+.container {
+    @apply w-full px-4 py-3;
+}
+
+.form {
+    @apply w-full relative;
+}
+
+.searchWrapper {
+    @apply relative w-full flex items-center;
+}
+
+.searchInput {
+    @apply w-full py-3 pl-10 pr-10 text-sm bg-white border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent;
+}
+
+.searchButton {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 bg-transparent border-0;
+}
+
+.searchIcon {
+    @apply text-xl;
+}
+
+.clearButton {
+    @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-transparent border-0 hover:text-gray-600;
+}
+
+.clearIcon {
+    @apply text-lg;
+}
+
+.suggestionsContainer {
+    @apply absolute left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-10 border border-gray-200;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.suggestionsList {
+    @apply py-2;
+}
+
+.suggestionItem {
+    @apply flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer;
+}
+
+.suggestionIcon {
+    @apply mr-2 text-gray-400;
+}
+
+/* 로딩 상태 스타일 */
+.searchInput:disabled {
+    @apply bg-gray-100 cursor-not-allowed;
+}
+
+.searchButton:disabled,
+.clearButton:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}

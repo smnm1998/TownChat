@@ -15,6 +15,10 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
         latitude: null,
         longitude: null
     });
+    // 별도의 파일 상태 추가
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedKnowledgeFile, setSelectedKnowledgeFile] = useState(null);
+    const [existingKnowledgeBaseName, setExistingKnowledgeBaseName] = useState('');
 
     const {
         register,
@@ -25,8 +29,6 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
         clearErrors,
         reset
     } = useForm();
-
-    const imageFile = watch('image');
 
     // 편집 모드에서 초기 데이터 설정
     useEffect(() => {
@@ -64,8 +66,14 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
                     ? storeData.image_url 
                     : `${window.location.origin}${storeData.image_url}`);
             }
-        }
-    }, [isEditMode, storeData, setValue]);
+            if (storeData.knowledge_base_filename) {
+                setExistingKnowledgeBaseName(storeData.knowledge_base_filename);
+                } else if (storeData.knowledge_base) {
+                    // 파일명 필드가 없는 경우 기본 이름 설정
+                    setExistingKnowledgeBaseName('기존_지식베이스.txt');
+                }
+            }
+        }, [isEditMode, storeData, setValue]);
 
     // Daum 우편번호 스크립트 로드
     useEffect(() => {
@@ -79,14 +87,27 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
         };
     }, []);
 
+    // 이미지 파일 처리 핸들러 수정
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // 파일 객체 상태에 저장
+            setSelectedImage(file);
+            
+            // 미리보기 생성
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewImage(reader.result);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    // 지식 베이스 파일 처리 핸들러 추가
+    const handleKnowledgeFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedKnowledgeFile(file);
         }
     };
 
@@ -144,100 +165,75 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
         setIsLoading(true);
         try {
             const formData = new FormData();
-
-            // 이미지 파일 처리
-            if (data.image && data.image[0]) {
-                formData.append('image', data.image[0]);
+    
+            // 선택된 이미지 파일이 있으면 추가
+            if (selectedImage) {
+                console.log('이미지 파일 추가:', selectedImage.name, selectedImage.size);
+                formData.append('image', selectedImage);
             }
             
-            // 지식 베이스 파일 첨부
-            if (data.knowledge_base_file && data.knowledge_base_file[0]) {
-                formData.append('knowledge_base_file', data.knowledge_base_file[0]);
-                
-                // 파일 내용을 읽어서 지식 베이스 텍스트로 추가
-                try {
-                    const fileReader = new FileReader();
-                    fileReader.onload = async (e) => {
-                        const content = e.target.result;
-                        formData.append('knowledge_base', content); // 이 부분이 중요합니다
-                        
-                        // 파일 읽기 완료 후 폼 제출 계속
-                        await submitFormData(formData, data);
-                    };
-                    fileReader.readAsText(data.knowledge_base_file[0]);
-                } catch (error) {
-                    console.error('파일 읽기 오류:', error);
-                    // 파일 읽기 실패해도 계속 제출
-                    await submitFormData(formData, data);
-                }
+            // 선택된 지식 베이스 파일이 있으면 추가
+            if (selectedKnowledgeFile) {
+                console.log('지식 베이스 파일 추가:', selectedKnowledgeFile.name, selectedKnowledgeFile.size);
+                formData.append('knowledge_base_file', selectedKnowledgeFile);
             }
+            
+            // 주소 처리
+            const fullAddress = data.address_detail 
+                ? `${data.address}, ${data.address_detail}` 
+                : data.address;
+                
+            // 기본 데이터 추가
+            formData.append('name', data.name);
+            formData.append('address', fullAddress);
+            formData.append('phone', data.phone || '');
+            formData.append('description', data.description || '');
+            formData.append('owner_name', data.owner_name);
+            formData.append('owner_phone', data.owner_phone || '');
+    
+            // 위도-경도 추가
+            if (geocodeData.latitude && geocodeData.longitude) {
+                formData.append('latitude', geocodeData.latitude);
+                formData.append('longitude', geocodeData.longitude);
+            }
+    
+            if (data.assistant_id) {
+                formData.append('assistant_id', data.assistant_id);
+            }
+    
+            console.log('전송 전 FormData 키:', [...formData.keys()]);
+            
+            const token = localStorage.getItem('accessToken');
+            const endpoint = isEditMode ? `/api/stores/${storeId || id}` : '/api/stores';
+            const method = isEditMode ? 'PUT' : 'POST';
+            
+            // 요청 전송
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+    
+            console.log('서버 응답 상태:', response.status);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `점포 ${isEditMode ? '수정' : '등록'}에 실패했습니다.`);
+            }
+    
+            const result = await response.json();
+            console.log('서버 응답 데이터:', result);
+            
+            alert(`점포가 성공적으로 ${isEditMode ? '수정' : '등록'}되었습니다.`);
+            navigate('/admin/dashboard');
         } catch (error) {
-            console.error(isEditMode ? '점포 수정 오류: ' : '점포 등록 오류: ', error);
+            console.error('폼 제출 에러:', error);
             alert(error.message || `점포 ${isEditMode ? '수정' : '등록'} 중 오류가 발생했습니다.`);
         } finally {
             setIsLoading(false);
         }
-    };
-    
-    // 실제 폼 데이터 제출 함수
-    const submitFormData = async (formData, data) => {
-        // 주소 처리 (기본 주소 + 상세 주소)
-        const fullAddress = data.address_detail 
-            ? `${data.address}, ${data.address_detail}` 
-            : data.address;
-            
-        formData.append('name', data.name);
-        formData.append('address', fullAddress);
-        formData.append('phone', data.phone || '');
-        formData.append('description', data.description || '');
-        formData.append('owner_name', data.owner_name);
-        formData.append('owner_phone', data.owner_phone || '');
-
-        // 위도-경도 추가
-        if (geocodeData.latitude && geocodeData.longitude) {
-            formData.append('latitude', geocodeData.latitude);
-            formData.append('longitude', geocodeData.longitude);
-        }
-
-        if (data.assistant_id) {
-            formData.append('assistant_id', data.assistant_id);
-        }
-
-        const token = localStorage.getItem('accessToken');
-        
-        // API 엔드포인트와 메서드 설정 (수정 또는 등록)
-        const endpoint = isEditMode ? `/api/stores/${storeId || id}` : '/api/stores';
-
-        const method = isEditMode ? 'PUT' : 'POST';
-        
-        const response = await fetch(endpoint, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${token}`
-                // Content-Type은 자동으로 설정되므로 지정하지 않음
-            },
-            body: formData
-        });
-
-        // 응답 분석
-        if (!response.ok) {
-            let errorMessage = `점포 ${isEditMode ? '수정' : '등록'}에 실패했습니다.`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-                console.error('에러 응답 파싱 실패:', e);
-            }
-            throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
-        
-        // 성공
-        alert(`점포가 성공적으로 ${isEditMode ? '수정' : '등록'}되었습니다.`);
-        
-        // 성공 후 대시보드로 이동
-        navigate('/admin/dashboard');
     };
 
     return (
@@ -381,17 +377,17 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
                             type="file"
                             accept=".txt"
                             className={styles.fileInput}
-                            {...register('knowledge_base_file')}
+                            onChange={handleKnowledgeFileUpload}
                         />
                         <label htmlFor="knowledge_base_file" className={styles.fileUploadLabel}>
                             <FiUpload className={styles.uploadIcon} />
                             <span>지식 베이스 파일 업로드</span>
                         </label>
-                        {watch('knowledge_base_file') && watch('knowledge_base_file')[0] && (
+                        {selectedKnowledgeFile && (
                             <div className={styles.fileInfo}>
-                                <span className={styles.fileName}>{watch('knowledge_base_file')[0].name}</span>
+                                <span className={styles.fileName}>{selectedKnowledgeFile.name}</span>
                                 <span className={styles.fileSize}>
-                                    {(watch('knowledge_base_file')[0].size / 1024).toFixed(2)} KB
+                                    {(selectedKnowledgeFile.size / 1024).toFixed(2)} KB
                                 </span>
                             </div>
                         )}
@@ -410,7 +406,6 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
                             type="file"
                             accept="image/*"
                             className={styles.imageInput}
-                            {...register('image')}
                             onChange={handleImageUpload}
                         />
                         <label htmlFor="image" className={styles.imageUploadLabel}>
