@@ -78,6 +78,8 @@ const getStoreById = async (req, res, next) => {
 // 점포 생성
 const createStore = async (req, res, next) => {
     try {
+        console.log('요청 시작 - 파일 정보:', req.files);
+        
         // 입력 데이터 검증
         validateCreateStore(req.body);
 
@@ -85,11 +87,13 @@ const createStore = async (req, res, next) => {
         const newStore = await storeService.createStore(
             req.user.id,
             req.body,
-            req.file
+            req.files
         );
 
+        console.log('생성된 점포 정보:', newStore);
         return success(res, 201, '점포가 성공적으로 등록되었습니다.', newStore);
     } catch (error) {
+        console.error('점포 생성 에러:', error);
         next(error);
     }
 };

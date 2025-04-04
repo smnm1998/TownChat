@@ -124,24 +124,44 @@ const createStore = async (userId, storeData, files = null) => {
     let imageUrl = null;
     if (files && files.image && files.image[0]) {
         const imageFile = files.image[0];
+        console.log('처리할 이미지 파일:', imageFile.originalname, imageFile.size);
+        
         // 업로드 폴더 경로
         const uploadDir = path.join(__dirname, '../../public/uploads/stores');
-
+        console.log('업로드 디렉토리 경로:', uploadDir);
+        
         // 폴더 X -> 생성
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+        try {
+            if (!fs.existsSync(uploadDir)) {
+                console.log('폴더 생성 시도:', uploadDir);
+                fs.mkdirSync(uploadDir, { recursive: true });
+                console.log('폴더 생성 성공');
+            }
+        } catch (dirError) {
+            console.error('폴더 생성 실패:', dirError);
+            // 폴더 생성 실패 시도 계속 진행
         }
 
-        // 타임스탬프 + 원본 파일명 생성
+        // 파일명 생성
         const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s/g, '_')}`;
         const filePath = path.join(uploadDir, fileName);
+        console.log('파일 저장 경로:', filePath);
 
-        // 파일 저장
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(filePath, imageFile.buffer);
-
-        // 저장된 img URL 설정
-        imageUrl = `/uploads/stores/${fileName}`;
+        try {
+            // 파일 저장
+            const writeFile = util.promisify(fs.writeFile);
+            await writeFile(filePath, imageFile.buffer);
+            console.log('파일 저장 성공');
+            
+            // 저장된 img URL 설정
+            imageUrl = `/uploads/stores/${fileName}`;
+            console.log('설정된 이미지 URL:', imageUrl);
+        } catch (fileError) {
+            console.error('파일 저장 실패:', fileError);
+            // 파일 저장 실패해도 계속 진행
+        }
+    } else {
+        console.log('처리할 이미지 파일이 없음. files 객체:', files);
     }
 
     // 지식 베이스 파일 처리
