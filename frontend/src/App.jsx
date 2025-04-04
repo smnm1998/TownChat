@@ -1,18 +1,25 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css'
+// 메인 서비스
+import MainPage from '@pages/Main/MainPage';
 import SignIn from '@pages/Auth/SignIn';
 import SignUp from '@pages/Auth/SignUp';
+
+// 관리자 페이지
 import AdminSignIn from '@pages/Admin/AdminSignIn';
 import AdminLayout from '@components/Layouts/AdminLayout';
 import AdminDashboard from '@components/Admin/AdminDashboard';
 import AdminAdd from '@pages/Admin/AdminAdd';
-import AdminEdit from '@pages/Admin/AdminEdit'; // 새로 추가된 임포트
+import AdminEdit from '@pages/Admin/AdminEdit';
 import AdminChatbots from '@components/Admin/AdminChatbots';
 
 function App() {
     return (
         <Router>
             <Routes>
+                {/* 메인 서비스 */}
+                <Route path="/" element={<MainPage />} />
+
                 {/* 일반 사용자 경로 */}
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
