@@ -4,6 +4,7 @@ import './App.css'
 import MainPage from '@pages/Main/MainPage';
 import SignIn from '@pages/Auth/SignIn';
 import SignUp from '@pages/Auth/SignUp';
+import ChatPage from '@pages/Chat/ChatPage';
 
 // 관리자 페이지
 import AdminSignIn from '@pages/Admin/AdminSignIn';
@@ -19,6 +20,8 @@ function App() {
             <Routes>
                 {/* 메인 서비스 */}
                 <Route path="/" element={<MainPage />} />
+                <Route path="/store/:id/chat" element={<ChatPage />} />
+                <Route path="/chat/:id" element={<ChatPage />} />
 
                 {/* 일반 사용자 경로 */}
                 <Route path="/signin" element={<SignIn />} />

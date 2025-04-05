@@ -1,0 +1,125 @@
+.container {
+    @apply flex flex-col h-screen bg-gray-100;
+}
+
+.header {
+    @apply bg-white p-4 flex items-center border-b border-gray-200 sticky top-0 z-10;
+}
+
+.backButton {
+    @apply p-2 rounded-full hover:bg-gray-100 text-gray-700;
+}
+
+.storeName {
+    @apply text-lg font-medium text-gray-800 ml-2 truncate;
+}
+
+.messageContainer {
+    @apply flex-1 p-4 overflow-y-auto space-y-4 pb-6;
+}
+
+.message {
+    @apply flex mb-4 max-w-xs;
+}
+
+.userMessage {
+    @apply ml-auto;
+}
+
+.botMessage {
+    @apply mr-auto;
+}
+
+.errorMessage .messageText {
+    @apply bg-red-50 text-red-600;
+}
+
+.botAvatar {
+    @apply w-10 h-10 mr-2 flex-shrink-0 rounded-full overflow-hidden bg-gray-200;
+}
+
+.avatarImage {
+    @apply w-full h-full object-cover;
+}
+
+.messageContent {
+    @apply flex flex-col;
+}
+
+.messageText {
+    @apply p-3 rounded-lg;
+}
+
+.userMessage .messageText {
+    @apply bg-yellow-500 text-white rounded-t-lg rounded-bl-lg;
+}
+
+.botMessage .messageText {
+    @apply bg-gray-200 text-gray-800 rounded-t-lg rounded-br-lg;
+}
+
+.messageTime {
+    @apply text-xs text-gray-500 mt-1;
+}
+
+.userMessage .messageTime {
+    @apply text-right;
+}
+
+.inputContainer {
+    @apply p-4 bg-white border-t border-gray-200 flex items-center sticky bottom-0;
+}
+
+.messageInput {
+    @apply flex-1 p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500;
+}
+
+.sendButton {
+    @apply p-3 ml-2 rounded-full bg-yellow-500 text-white;
+}
+
+.sendButton.disabled {
+    @apply bg-gray-300 cursor-not-allowed;
+}
+
+.typingIndicator {
+    @apply flex items-center space-x-1 p-3 rounded-lg bg-gray-200 max-w-xs animate-pulse;
+}
+
+.typingIndicator span {
+    @apply w-2 h-2 rounded-full bg-gray-400;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typingIndicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typingIndicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.loadingContainer, .errorContainer {
+    @apply flex flex-col items-center justify-center h-full;
+}
+
+.loading {
+    @apply text-gray-500 animate-pulse;
+}
+
+.error {
+    @apply text-red-500 mb-4 text-center;
+}
+
+.retryButton {
+    @apply px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1.0);
+    }
+}

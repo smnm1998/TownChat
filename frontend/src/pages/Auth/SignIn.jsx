@@ -27,6 +27,7 @@ const SignIn = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    username: data.email, // 백엔드가 username 필드를 요구하므로 email 값을 username으로 전송
                     email: data.email,
                     password: data.password,
                 }),

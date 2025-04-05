@@ -1,9 +1,13 @@
+.cardWrapper {
+    @apply relative;
+}
+
 .card {
-    @apply block bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 transition-transform duration-200 hover:shadow-md hover:-translate-y-1;
+    @apply block bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 transition-transform;
 }
 
 .imageContainer {
-    @apply w-full h-32 overflow-hidden;
+    @apply w-full h-36 overflow-hidden relative;
 }
 
 .image {
@@ -15,9 +19,18 @@
 }
 
 .title {
-    @apply text-sm font-medium text-gray-800 mb-1;
+    @apply text-base font-medium text-gray-800 mb-1;
 }
 
 .address {
     @apply text-xs text-gray-500;
+}
+
+.chatButton {
+    @apply absolute bottom-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-yellow-500 text-white shadow-md transition-transform hover:bg-yellow-600 hover:transform hover:scale-105;
+    z-index: 10;
+}
+
+.chatIcon {
+    @apply w-5 h-5;
 }

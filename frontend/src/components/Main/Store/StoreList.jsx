@@ -150,7 +150,7 @@ const StoreList = ({ userLocation, searchTerm }) => {
                 {searchTerm 
                     ? `'${searchTerm}' 검색 결과 (${pagination.total})` 
                     : userLocation 
-                        ? '내 주변 점포' 
+                        ? '주변 추천 점포' 
                         : '추천 점포'
                 }
             </h2>
