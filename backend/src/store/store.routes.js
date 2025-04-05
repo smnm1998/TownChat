@@ -43,7 +43,7 @@ router.post(
 
 // Admin 전용 API Route
 // 모든 점포 목록 조회
-router.get('/', authenticate, isAdmin, storeController.getAllStores);
+router.get('/', storeController.getAllStores);
 
 // 패턴 매칭 라우트를 나중에 배치
 // 특정 점포 상세 조회

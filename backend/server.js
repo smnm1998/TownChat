@@ -1,3 +1,5 @@
+const express = require('express');
+const path = require('path'); // path 모듈도 추가해야 합니다!
 const configureApp = require('./src/config/app');
 const sequelize = require('./src/config/database');
 const env = require('./src/config/environment');
@@ -9,15 +11,19 @@ const {
 
 // 라우트 파일 임포트
 const authRoutes = require('./src/auth/auth.routes');
-const storeRoutes = require('./src/store/store.routes'); // 추가된 임포트
-const chatbotRoutes = require('./src/chatbot/chatbot.routes'); // 추가된 임포트
+const storeRoutes = require('./src/store/store.routes'); 
+const chatbotRoutes = require('./src/chatbot/chatbot.routes'); 
 
+// app 생성 먼저
 const app = configureApp();
+
+// 그 다음에 미들웨어 및 정적 파일 설정
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // API 라우트
 app.use('/api/auth', authRoutes);
-app.use('/api/stores', storeRoutes); // 추가된 라우트
-app.use('/api/chatbots', chatbotRoutes); // 추가된 라우트
+app.use('/api/stores', storeRoutes);
+app.use('/api/chatbots', chatbotRoutes);
 
 // API 루트 경로
 app.get('/api', (req, res) => {

@@ -81,8 +81,8 @@ const getNearbyStores = async (latitude, longitude, radiusKm = 5, options = {}) 
             longitude: { [Op.between]: [minLng, maxLng] },
             is_active: true
         },
-        limit,
-        offset,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
         order: [['created_at', 'DESC']]
     });
 

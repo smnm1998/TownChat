@@ -7,10 +7,10 @@ const getAllStores = async (req, res, next) => {
     try {
         const { page, limit, search, active } = req.query;
         const { stores, pagination } = await storeService.getAllStores({
-            page,
-            limit,
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 20,
             search,
-            active
+            active: active === 'true' || active === true
         });
         return paginate(res, stores, pagination, '점포 목록 조회 성공');
     } catch (error) {
@@ -43,7 +43,7 @@ const getNearbyStores = async (req, res, next) => {
     try {
         const { latitude, longitude, radius, page, limit } = req.query;
 
-        if (!latitude || !logintude) {
+        if (!latitude || !longitude) {
             return res.status(400).json({
                 success: false,
                 message: '위도와 경도가 필요합니다.'
@@ -54,7 +54,10 @@ const getNearbyStores = async (req, res, next) => {
             parseFloat(latitude),
             parseFloat(longitude),
             radius ? parseFloat(radius) : 5,
-            { page, limit }
+            { 
+                page: parseInt(page) || 1, 
+                limit: parseInt(limit) || 20 
+            }
         );
 
         return paginate(res, stores, pagination, '근처 점포 검색 성공');
