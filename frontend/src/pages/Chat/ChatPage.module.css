@@ -11,7 +11,7 @@
 }
 
 .storeName {
-    @apply text-lg font-medium text-gray-800 ml-2 truncate;
+    @apply text-lg font-medium text-gray-800 m-auto text-center truncate;
 }
 
 .messageContainer {
@@ -20,10 +20,12 @@
 
 .message {
     @apply flex mb-4 max-w-xs;
+    width: fit-content; /* 컨텐츠에 맞게 너비 조정 */
 }
 
 .userMessage {
-    @apply ml-auto;
+    @apply ml-auto justify-end; /* 오른쪽 정렬을 위해 justify-end 추가 */
+    flex-direction: row-reverse; /* 사용자 메시지는 요소 순서를 반대로 */
 }
 
 .botMessage {
@@ -44,6 +46,7 @@
 
 .messageContent {
     @apply flex flex-col;
+    max-width: 100%; /* 내용이 넘치지 않도록 */
 }
 
 .messageText {
@@ -52,6 +55,7 @@
 
 .userMessage .messageText {
     @apply bg-yellow-500 text-white rounded-t-lg rounded-bl-lg;
+    align-self: flex-end; /* Flex 컨테이너 내에서 끝(오른쪽)에 정렬 */
 }
 
 .botMessage .messageText {
@@ -83,7 +87,8 @@
 }
 
 .typingIndicator {
-    @apply flex items-center space-x-1 p-3 rounded-lg bg-gray-200 max-w-xs animate-pulse;
+    @apply flex items-center space-x-1 p-2 mt-1 rounded-lg;
+    max-width: 60px;
 }
 
 .typingIndicator span {
@@ -122,4 +127,18 @@
     40% {
         transform: scale(1.0);
     }
+}
+
+.cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background-color: currentColor;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }

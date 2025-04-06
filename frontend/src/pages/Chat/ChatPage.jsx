@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSend } from 'react-icons/fi';
+import useTypewriter from '../../hooks/useTypeWriter';
 import styles from './ChatPage.module.css';
 
 const ChatPage = () => {
@@ -88,7 +89,8 @@ const ChatPage = () => {
                                 id: `user_${entry.id}`,
                                 text: entry.message,
                                 isUser: true,
-                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now())
+                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now()),
+                                isHistoryMessage: true
                             });
 
                             // 챗봇 응답
@@ -96,7 +98,8 @@ const ChatPage = () => {
                                 id: `bot_${entry.id}`,
                                 text: entry.response,
                                 isUser: false,
-                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now())
+                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now()),
+                                isHistoryMessage: true
                             });
                         });
                         setMessages(formattedMessages);
@@ -109,7 +112,8 @@ const ChatPage = () => {
                         id: 'initial',
                         text: chatbotData.data.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
                         isUser: false,
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        isHistoryMessage: true
                     };
 
                     setMessages([greetingMessage]);
@@ -274,7 +278,7 @@ const ChatPage = () => {
                                 다시 시도
                         </button>
                     </div>
-                ): (
+                ) : (
                     <>
                         {messages.map((message) => (
                             <div
@@ -294,7 +298,7 @@ const ChatPage = () => {
                                     </div>
                                 )}
                                 <div className={styles.messageContent}>
-                                    <div className={styles.messageText}>{message.text}</div>
+                                    <MessageText message={message} />
                                     <div className={styles.messageTime}>
                                         {message.timestamp && typeof message.timestamp.toLocaleTimeString === 'function' 
                                             ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -306,10 +310,22 @@ const ChatPage = () => {
                         <div ref={messagesEndRef} />
 
                         {isSending && (
-                            <div className={styles.typingIndicator}>
-                                <span></span>
-                                <span></span>
-                                <span></span>
+                            <div className={styles.message}>
+                                <div className={styles.botAvatar}>
+                                    <img 
+                                        src={store?.image_url || '/placeholder-store.jpg'} 
+                                        alt={store?.name}
+                                        className={styles.avatarImage}
+                                        onError={(e) => {
+                                            e.target.src = '/placeholder-store.jpg';
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.typingIndicator}>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
                             </div>
                         )}
                     </>
@@ -336,6 +352,29 @@ const ChatPage = () => {
                     <FiSend />
                 </button>
             </div>
+        </div>
+    );
+};
+
+// 메시지 텍스트 컴포넌트 - 타이핑 효과 적용
+const MessageText = ({ message }) => {
+    // message.text가 undefined인 경우 빈 문자열로 대체
+    const messageText = message.text || '';
+    const skipTyping = message.isUser || message.isHistoryMessage;
+    
+    const { text, isComplete, completeTyping } = useTypewriter(
+        messageText, // undefined 대신 빈 문자열 전달
+        30,
+        skipTyping
+    );
+    
+    return (
+        <div 
+            className={styles.messageText} 
+            onClick={() => !isComplete && completeTyping()}
+        >
+            {text} {/* text는 항상 문자열 */}
+            {!isComplete && <span className={styles.cursor}>|</span>}
         </div>
     );
 };

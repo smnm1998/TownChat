@@ -1,5 +1,5 @@
 .header {
-    @apply bg-white py-4 px-4 sticky top-0 z-10 shadow-sm;
+    @apply bg-white py-7 px-7 sticky top-0 z-10 shadow-sm;
 }
 
 .container {
@@ -16,5 +16,5 @@
 }
 
 .logo {
-    @apply h-7;
+    @apply h-9;
 }
