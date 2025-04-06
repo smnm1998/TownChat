@@ -340,7 +340,7 @@ const getThreadIdBySessionId = async (sessionId) => {
     }
 };
 
-// 챗봇 대화 실행
+// 챗봇 대화 함수 수정
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     const { userId = null, sessionId = null, location = null } = options;
 
@@ -363,13 +363,12 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     // 새 세션 ID 생성 (제공되지 않은 경우)
     const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
-    // 세션 ID로 기존 스레드 ID 조회 - 여기서 오류 발생 가능
-    let threadId = null;  // 변수 초기화
+    // 세션 ID로 기존 스레드 ID 조회
+    let threadId = null;
     try {
         threadId = await getThreadIdBySessionId(currentSessionId);
     } catch (error) {
         logger.error('스레드 ID 조회 실패:', error);
-        // 오류가 발생해도 계속 진행, 새 스레드 생성
     }
     
     // OpenAI API를 통해 챗봇과 대화
@@ -379,7 +378,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             chatbot.assistant_id,
             message,
             currentSessionId,
-            threadId  // threadId 변수 전달 (null일 수도 있음)
+            threadId
         );
         
         // 새로운 스레드 ID 가져오기
@@ -394,7 +393,6 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         // 위치 정보 처리
         let locationPoint = null;
         if (location && location.latitude && location.longitude) {
-            // POINT 타입으로 변환
             locationPoint = { type: 'Point', coordinates: [location.longitude, location.latitude] };
         }
 
@@ -404,14 +402,13 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             session_id: currentSessionId,
             message: message,
             response: chatResponse.response,
-            thread_id: threadId, // 스레드 ID 저장
+            thread_id: threadId,
             timestamp: new Date(),
             user_feedback: 'none',
             user_location: locationPoint,
         });
     } catch (error) {
         logger.error('대화 로그 저장 중 오류 발생:', error);
-        // 로그 저장 실패는 무시하고 응답 계속 진행
     }
 
     return {
@@ -420,31 +417,47 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     };
 };
 
-// 대화 기록 조회
-const getChatHistory = async (chatbotId, sessionId, options = {}) => {
-    const { page = 1, limit = 50 } = options;
+// 대화 기록 조회 함수 수정
+const getChatHistory = async (chatbotId, sessionId, userId = null, options = {}) => {
+    const { page = 1, limit = 50 } = options || {};
     const offset = (page - 1) * limit;
 
-    const { count, rows } = await ChatLog.findAndCountAll({
-        where: {
-            chatbot_id: chatbotId,
-            session_id: sessionId,
-        },
-        order: [['created_at', 'ASC']],
-        limit,
-        offset,
-    });
-
-    const totalPages = Math.ceil(count / limit);
-    const pagination = {
-        total: count,
-        totalPages,
-        currentPage: parseInt(page),
-        limit: parseInt(limit),
+    // 쿼리 조건 설정
+    const whereClause = {
+        chatbot_id: chatbotId
     };
+    
+    // 로그인한 사용자는 user_id로 필터링
+    // 비로그인 사용자는 sessionId로 필터링
+    if (userId) {
+        whereClause.user_id = userId;
+    } else if (sessionId) {
+        whereClause.session_id = sessionId;
+    }
 
-    return { chatlogs: rows, pagination };
+    try {
+        const { count, rows } = await ChatLog.findAndCountAll({
+            where: whereClause,
+            order: [['created_at', 'ASC']],
+            limit,
+            offset,
+        });
+
+        const totalPages = Math.ceil(count / limit);
+        const pagination = {
+            total: count,
+            totalPages,
+            currentPage: parseInt(page),
+            limit: parseInt(limit),
+        };
+
+        return { chatlogs: rows, pagination };
+    } catch (error) {
+        logger.error('대화 기록 조회 실패: ', error);
+        throw new Error('대화 기록 조회 중 오류가 발생했습니다');
+    }
 };
+
 
 // 모든 챗봇 목록 조회
 const getAllChatbots = async () => {
@@ -475,23 +488,12 @@ const getUserChatSessions = async (userId, options = {}) => {
         ],
         where: {
             user_id: userId,
+            chatbot_id: chatbotId
         },
-        group: ['session_id', 'chatbot_id'],
+        group: ['session_id'],
         order: [[sequelize.literal('last_chat'), 'DESC']],
         limit,
         offset,
-        include: [
-            {
-                model: Chatbot,
-                attributes: ['id', 'name'],
-                include: [
-                    {
-                        model: Store,
-                        attributes: ['id', 'name'],
-                    },
-                ],
-            },
-        ],
     });
 
     // 총 세션 수 조회
@@ -501,6 +503,7 @@ const getUserChatSessions = async (userId, options = {}) => {
         ],
         where: {
             user_id: userId,
+            chatbot_id: chatbotId
         },
         raw: true,
     });

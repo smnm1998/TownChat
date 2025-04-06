@@ -64,7 +64,7 @@ const useTypewriter = (text = '', speed = 30, skipTyping = false) => {
     }, [text, speed, skipTyping]);
     
     return { 
-        text: displayedText || '', // 항상 문자열 반환 (undefined 방지)
+        text: (displayedText || '').toString(),
         isComplete, 
         completeTyping 
     };

@@ -103,7 +103,7 @@ const getChatbotByStoreId = async (req, res, next) => {
     }
 };
 
-// 챗봇과 대화하기
+// 챗봇과 대화하기 컨트롤러
 const chatWithChatbot = async (req, res, next) => {
     try {
         const chatbotId = parseInt(req.params.id);
@@ -125,7 +125,7 @@ const chatWithChatbot = async (req, res, next) => {
         
         // 챗봇과 대화
         const chatOptions = {
-            userId: req.user ? req.user.id : null,
+            userId: req.user ? req.user.id : null,  // 로그인했으면 사용자 ID 전달
             sessionId,
             location
         };
@@ -142,24 +142,33 @@ const chatWithChatbot = async (req, res, next) => {
     }
 };
 
-// 챗봇 대화 기록 조회
+// 챗봇 대화 기록 조회 컨트롤러
 const getChatHistory = async (req, res, next) => {
     try {
         const chatbotId = parseInt(req.params.id);
-        const { sessionId, page, limit } = req.query;
+        const { sessionId } = req.query;
+        const userId = req.user ? req.user.id : null;
         
-        if (!sessionId) {
+        // 로그인하지 않았고 세션ID도 없는 경우 에러
+        if (!userId && !sessionId) {
             return res.status(400).json({
                 success: false,
                 message: '세션 ID가 필요합니다.'
             });
         }
         
-        // 대화 기록 조회
+        // 옵션 객체 준비
+        const options = { 
+            page: req.query.page ? parseInt(req.query.page) : 1, 
+            limit: req.query.limit ? parseInt(req.query.limit) : 50 
+        };
+        
+        // 서비스 함수 호출
         const { chatlogs, pagination } = await chatbotService.getChatHistory(
             chatbotId,
             sessionId,
-            { page, limit }
+            userId,
+            options
         );
         
         return paginate(res, chatlogs, pagination, '대화 기록 조회 성공');
@@ -168,23 +177,110 @@ const getChatHistory = async (req, res, next) => {
     }
 };
 
-// 사용자 대화 세션 목록 조회
-const getUserChatSessions = async (req, res, next) => {
-    try {
-        const userId = req.user.id;
-        const { page, limit } = req.query;
-        
-        // 사용자 대화 세션 목록 조회
-        const { sessions, pagination } = await chatbotService.getUserChatSessions(
-            userId,
-            { page, limit }
-        );
-        
-        return paginate(res, sessions, pagination, '대화 세션 조회 성공');
-    } catch (error) {
-        next(error);
-    }
+// 사용자의 특정 챗봇과의 대화 세션 목록 조회 함수 추가
+const getUserChatbotSessions = async (userId, chatbotId, options = {}) => {
+    const { page = 1, limit = 10 } = options || {};
+    const offset = (page - 1) * limit;
+    
+    // 특정 챗봇과의 대화 세션 그룹화하여 조회
+    const sessions = await ChatLog.findAll({
+        attributes: [
+            'session_id',
+            [sequelize.fn('MAX', sequelize.col('created_at')), 'last_chat'],
+            [sequelize.fn('COUNT', sequelize.col('id')), 'message_count'],
+        ],
+        where: {
+            user_id: userId,
+            chatbot_id: chatbotId
+        },
+        group: ['session_id'],
+        order: [[sequelize.literal('last_chat'), 'DESC']],
+        limit,
+        offset,
+    });
+    
+    // 총 세션 수 조회
+    const countResult = await ChatLog.findAll({
+        attributes: [
+            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('session_id'))), 'session_count'],
+        ],
+        where: {
+            user_id: userId,
+            chatbot_id: chatbotId
+        },
+        raw: true,
+    });
+    
+    const count = countResult[0]?.session_count || 0;
+    const totalPages = Math.ceil(count / limit);
+    
+    const pagination = {
+        total: count,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+    };
+    
+    return { sessions, pagination };
 };
+
+const getUserChatSessions = async (userId, options = {}) => {
+    const { page = 1, limit = 10 } = options || {};
+    const offset = (page - 1) * limit;
+
+    // 고유한 세션 ID 및 최근 대화 시간 조회
+    const sessions = await ChatLog.findAll({
+        attributes: [
+            'session_id',
+            [sequelize.fn('MAX', sequelize.col('created_at')), 'last_chat'],
+            [sequelize.fn('COUNT', sequelize.col('id')), 'message_count'],
+            'chatbot_id',
+        ],
+        where: {
+            user_id: userId
+        },
+        group: ['session_id', 'chatbot_id'],
+        order: [[sequelize.literal('last_chat'), 'DESC']],
+        limit,
+        offset,
+        include: [
+            {
+                model: Chatbot,
+                attributes: ['id', 'name'],
+                include: [
+                    {
+                        model: Store,
+                        attributes: ['id', 'name'],
+                    },
+                ],
+            },
+        ],
+    });
+
+    // 총 세션 수 조회
+    const countResult = await ChatLog.findAll({
+        attributes: [
+            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('session_id'))), 'session_count'],
+        ],
+        where: {
+            user_id: userId
+        },
+        raw: true,
+    });
+
+    const count = countResult[0]?.session_count || 0;
+    const totalPages = Math.ceil(count / limit);
+
+    const pagination = {
+        total: count,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+    };
+
+    return { sessions, pagination };
+};
+
 
 // 모든 챗봇 목록 조회
 const getAllChatbots = async (req, res, next) => {
@@ -206,5 +302,6 @@ module.exports = {
     chatWithChatbot,
     getChatHistory,
     getUserChatSessions,
-    getAllChatbots
+    getAllChatbots,
+    getUserChatbotSessions
 };
