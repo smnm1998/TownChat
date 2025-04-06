@@ -6,6 +6,7 @@ import styles from './ChatPage.module.css';
 const ChatPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [user, setUser] = useState(null);
     const [store, setStore] = useState(null);
     const [chatbotId, setChatbotId] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -16,25 +17,52 @@ const ChatPage = () => {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
+    // 세션 ID 생성 (오타 수정: subString → substring)
     const [sessionId] = useState(() => {
         const savedSessionId = localStorage.getItem(`chat_session_${id}`);
-        return savedSessionId || `session_${Date.now()}_${Math.random().toString(36).subString(2, 9)}`;
+        return savedSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     });
+
+    // 사용자 정보 가져오기
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (token) {
+                    const response = await fetch('/api/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        setUser(data.data?.user || null);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user info:", error);
+            }
+        };
+        
+        fetchUserInfo();
+    }, []);
 
     useEffect(() => {
         const fetchStoreAndHistory = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                const storeResponse = await fetch(`/api/store/${id}`);
+                // 점포 정보 가져오기 - 엔드포인트 수정 (/api/store → /api/stores)
+                const storeResponse = await fetch(`/api/stores/${id}`);
                 if (!storeResponse.ok) {
                     throw new Error('점포 정보 불러오기 실패');
                 }
                 const storeData = await storeResponse.json();
                 setStore(storeData.data);
 
-                // 챗봇 정보 가져오기
-                const chatbotResponse = await fetch(`/api/chatbot/${id}`);
+                // 챗봇 정보 가져오기 - 엔드포인트 수정 (/api/chatbot → /api/chatbots/store)
+                const chatbotResponse = await fetch(`/api/chatbots/store/${id}`);
                 if (!chatbotResponse.ok) {
                     throw new Error('챗봇 정보를 불러오는데 실패했습니다.');
                 }
@@ -43,11 +71,13 @@ const ChatPage = () => {
                 const botId = chatbotData.data.id;
                 setChatbotId(botId);
 
-                // 채팅 기록
+                // 채팅 기록 조회
+                let historyData = null; // 변수를 미리 선언
+
                 const historyResponse = await fetch(`/api/chatbots/${botId}/history?sessionId=${sessionId}`);
 
                 if (historyResponse.ok) {
-                    const historyData = await historyResponse.json();
+                    historyData = await historyResponse.json();
 
                     if (historyData.data && Array.isArray(historyData.data)) {
                         const formattedMessages = [];
@@ -58,7 +88,7 @@ const ChatPage = () => {
                                 id: `user_${entry.id}`,
                                 text: entry.message,
                                 isUser: true,
-                                timestamp: new Date(entry.timestamp || entry.created_at)
+                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now())
                             });
 
                             // 챗봇 응답
@@ -66,24 +96,24 @@ const ChatPage = () => {
                                 id: `bot_${entry.id}`,
                                 text: entry.response,
                                 isUser: false,
-                                timeStamp: new Date(entry.timestamp || entry.created_at)
+                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now())
                             });
                         });
                         setMessages(formattedMessages);
                     }
                 }
 
-                if (!historyResponse.ok ||
-                    (historyResponse.ok && (!historyData.data || historyData.data.length === 0))) {
-                        const greetingMessage = {
-                            id: 'initial',
-                            text: chatbotData.data.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
-                            isUser: false,
-                            timestamp: new Date()
-                        };
+                // 히스토리가 없거나 응답이 성공적이지 않은 경우 인사말 메시지 표시
+                if (!historyResponse.ok || (historyData && (!historyData.data || historyData.data.length === 0))) {
+                    const greetingMessage = {
+                        id: 'initial',
+                        text: chatbotData.data.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
+                        isUser: false,
+                        timestamp: new Date()
+                    };
 
-                        setMessages([greetingMessage]);
-                    }
+                    setMessages([greetingMessage]);
+                }
             } catch (error) {
                 console.error('데이터 로딩 중 오류: ', error);
                 setError(error.message || '데이터를 불러오는데 문제가 발생했습니다.');
@@ -124,15 +154,53 @@ const ChatPage = () => {
                 throw new Error('챗봇 ID를 찾을 수 없습니다.');
             }
 
+            // 위치 정보 가져오기 (선택 사항)
+            let location = null;
+            if (navigator.geolocation) {
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            timeout: 5000,
+                            maximumAge: 10000
+                        });
+                    });
+                    
+                    location = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                } catch (e) {
+                    console.log('위치 정보를 가져올 수 없습니다:', e);
+                }
+            }
+
+            // 요청 본문 구성
+            const requestBody = {
+                message: newMessage,
+                sessionId: sessionId
+            };
+
+            // 위치 정보가 있으면 추가
+            if (location) {
+                requestBody.location = location;
+            }
+
+            // 헤더 구성 - 로그인한 경우 인증 토큰 추가
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (user) {
+                const token = localStorage.getItem('accessToken');
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+            }
+
             const response = await fetch(`/api/chatbots/${chatbotId}/chat`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: newMessage,
-                    sessionId: sessionId
-                })
+                headers,
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
@@ -141,7 +209,7 @@ const ChatPage = () => {
 
             const responseData = await response.json();
 
-            const botMenu = {
+            const botMessage = {
                 id: `bot_${Date.now()}`,
                 text: responseData.data.response,
                 isUser: false,
@@ -194,7 +262,7 @@ const ChatPage = () => {
 
             <div className={styles.messageContainer}>
                 {isLoading ? (
-                    <div className={styles.lodingContainer}>
+                    <div className={styles.loadingContainer}>
                         <div className={styles.loading}>메시지를 불러오는 중...</div>
                     </div>
                 ) : error ? (
@@ -215,18 +283,27 @@ const ChatPage = () => {
                             >
                                 {!message.isUser && (
                                     <div className={styles.botAvatar}>
-                                        <img src={store?.image_url} alt={store?.name} className={styles.avatarImage} />
+                                        <img 
+                                            src={store?.image_url || '/placeholder-store.jpg'} 
+                                            alt={store?.name}
+                                            className={styles.avatarImage}
+                                            onError={(e) => {
+                                                e.target.src = '/placeholder-store.jpg';
+                                            }}
+                                        />
                                     </div>
                                 )}
                                 <div className={styles.messageContent}>
                                     <div className={styles.messageText}>{message.text}</div>
                                     <div className={styles.messageTime}>
-                                        {message.timestamp.toLocalTimeString([], { hour: '2-digit', minute: '2-digit'})}
+                                        {message.timestamp && typeof message.timestamp.toLocaleTimeString === 'function' 
+                                            ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <div ref={messageEndRef} />
+                        <div ref={messagesEndRef} />
 
                         {isSending && (
                             <div className={styles.typingIndicator}>

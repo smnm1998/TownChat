@@ -42,15 +42,15 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
             }
         } catch (error) {
-            console.error('사용자 정보 조회 실패: ', error);
-            setError(error.message || '사용자 정보를 불러오는데 실패했습니다.');
-            setUsers(null);
+            console.error('Failed to fetch user info: ', error);
+            setError(error.message || 'Failed to load user information.');
+            setUser(null);
         } finally {
             setLoading(false);
         }
     };
 
-    const signIn = async (emial, password) => {
+    const signIn = async (email, password) => {
         try {
             setLoading(true);
             const response = await fetch('/api/auth/signin', {
@@ -58,13 +58,13 @@ export const AuthProvider = ({ children }) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, username: email })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || '로그인에 실패했습니다.');
+                throw new Error(data.message || 'Login failed.');
             }
 
             if (data.data?.accessToken) {
@@ -78,11 +78,11 @@ export const AuthProvider = ({ children }) => {
                 await fetchUserInfo();
                 return true;
             } else {
-                throw new Error('토큰 정보가 없습니다.');
+                throw new Error('No token information.');
             }
         } catch (error) {
-            console.error('로그인 실패: ', error);
-            setError(error.message || '로그인에 실패했습니다.');
+            console.error('Login failed: ', error);
+            setError(error.message || 'Login failed.');
             return false;
         } finally {
             setLoading(false);
@@ -107,11 +107,11 @@ export const AuthProvider = ({ children }) => {
                         body: JSON.stringify({ refreshToken })
                     });
                 } catch (error) {
-                    console.warn('로그아웃 요청 실패, 로컬에서만 로그아웃 처리됨', error);
+                    console.warn('Logout request failed, logging out locally only', error);
                 }
             }
         } catch (error) {
-            console.error('로그아웃 오류', error);
+            console.error('Logout error', error);
         } finally {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         fetchUserInfo();
     }, []);
 
-    const value ={
+    const value = {
         user,
         loading,
         error,
@@ -140,11 +140,11 @@ export const useAuth = () => {
     const context = useContext(AuthContext);
 
     if (!context) {
-        console.warn('useAuth 에러');
+        console.warn('useAuth error');
         return {
             user: null,
             loading: false,
-            error: 'AuthProvider가 설정 x',
+            error: 'AuthProvider is not set up',
             signIn: () => Promise.resolve(false),
             signOut: () => Promise.resolve(),
             fetchUserInfo: () => Promise.resolve()
