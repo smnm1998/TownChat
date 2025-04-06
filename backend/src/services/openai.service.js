@@ -7,7 +7,6 @@ const openai = new OpenAI({
     apiKey: env.OPENAI_API_KEY,
 });
 
-
 const createAssistant = async (name, instructions, model = 'gpt-4o-mini') => {
     try {
         const assistant = await openai.beta.assistants.create({
@@ -50,34 +49,44 @@ const deleteAssistant = async (assistantId) => {
 };
 
 // 챗봇 대화
-const chatWithAssistant = async (assistantId, message, sessionId = null) => {
+const chatWithAssistant = async (assistantId, message, sessionId = null, threadId = null) => {
     try {
         // 세션 아이디 없으면 새로 생성
         if (!sessionId) {
             sessionId = `session_${Date.now()}`;
         }
 
-        // 스레드 생성
-        const thread = await openai.beta.threads.create();
+        let thread;
+        
+        // 기존 스레드 ID가 있으면 사용, 없으면 새로 생성
+        if (threadId) {
+            // 기존 스레드 ID 사용
+            console.log('기존 스레드 ID 사용:', threadId);
+        } else {
+            // 새 스레드 생성
+            thread = await openai.beta.threads.create();
+            threadId = thread.id;
+            console.log('새 스레드 생성:', threadId);
+        }
 
         // 메시지 추가
-        await openai.beta.threads.messages.create(thread.id, {
+        await openai.beta.threads.messages.create(threadId, {
             role: 'user',
             content: message,
         });
 
         // 실행
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(threadId, {
             assistant_id: assistantId,
         });
 
-        // 실행 완료 대기
+        // 실행 완료 대기 (최대 60초)
         let runStatus = await openai.beta.threads.runs.retrieve(
-            thread.id,
+            threadId,
             run.id
         );
 
-        // 실행 완료될 때까지 대기 (최대 60초)
+        // 실행 완료될 때까지 대기 (최대 30번 시도)
         let attempts = 0;
         const maxAttempts = 30;
 
@@ -86,9 +95,9 @@ const chatWithAssistant = async (assistantId, message, sessionId = null) => {
             runStatus.status !== 'failed' &&
             attempts < maxAttempts
         ) {
-            await new Promise ((resolve) => setTimeout(resolve, 2000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             runStatus = await openai.beta.threads.runs.retrieve(
-                thread.id,
+                threadId,
                 run.id
             );
             attempts++;
@@ -105,7 +114,7 @@ const chatWithAssistant = async (assistantId, message, sessionId = null) => {
         }
 
         // 응답 메시지 가져오기
-        const messages = await openai.beta.threads.messages.list(thread.id);
+        const messages = await openai.beta.threads.messages.list(threadId);
 
         // Assistant 응답 (latest)
         const assistantMessage = messages.data.filter(
@@ -129,12 +138,12 @@ const chatWithAssistant = async (assistantId, message, sessionId = null) => {
 
         return {
             response: responseText,
-            threadId: thread.id,
+            threadId: threadId,
             sessionId,
         };
     } catch (error) {
         logger.error('OpenAI Assistant 대화 중 오류 발생: ', error);
-        throw new Error('챗봇 대화에 실패' + error.message);
+        throw new Error('챗봇 대화에 실패: ' + error.message);
     }
 };
 

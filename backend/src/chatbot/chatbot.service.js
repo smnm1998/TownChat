@@ -323,6 +323,23 @@ const getChatbotById = async (chatbotId) => {
     return chatbot;
 };
 
+const getThreadIdBySessionId = async (sessionId) => {
+    try {
+        const chatlog = await ChatLog.findOne({
+            where: {
+                session_id: sessionId,
+                thread_id: { [Op.not]: null }
+            },
+            order: [['created_at', 'DESC']]
+        });
+
+        return chatlog ? chatlog.thread_id : null;
+    } catch (error) {
+        logger.error('스레드 ID 조회 실패: ', error);
+        return null;
+    }
+};
+
 // 챗봇 대화 실행
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     const { userId = null, sessionId = null, location = null } = options;
@@ -345,15 +362,28 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
 
     // 새 세션 ID 생성 (제공되지 않은 경우)
     const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
+    
+    // 세션 ID로 기존 스레드 ID 조회 - 여기서 오류 발생 가능
+    let threadId = null;  // 변수 초기화
+    try {
+        threadId = await getThreadIdBySessionId(currentSessionId);
+    } catch (error) {
+        logger.error('스레드 ID 조회 실패:', error);
+        // 오류가 발생해도 계속 진행, 새 스레드 생성
+    }
+    
     // OpenAI API를 통해 챗봇과 대화
     let chatResponse;
     try {
         chatResponse = await openaiService.chatWithAssistant(
             chatbot.assistant_id,
             message,
-            currentSessionId
+            currentSessionId,
+            threadId  // threadId 변수 전달 (null일 수도 있음)
         );
+        
+        // 새로운 스레드 ID 가져오기
+        threadId = chatResponse.threadId;
     } catch (error) {
         logger.error('챗봇 대화 중 오류 발생:', error);
         throw new Error('챗봇 응답 생성에 실패했습니다: ' + error.message);
@@ -374,6 +404,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             session_id: currentSessionId,
             message: message,
             response: chatResponse.response,
+            thread_id: threadId, // 스레드 ID 저장
             timestamp: new Date(),
             user_feedback: 'none',
             user_location: locationPoint,
