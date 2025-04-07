@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSend } from 'react-icons/fi';
+import PropTypes from 'prop-types';
 import useTypewriter from '../../hooks/useTypeWriter';
 import styles from './ChatPage.module.css';
 
@@ -15,13 +16,27 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState(null);
+    const [sessionIdSet, setSessionIdSet] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // 세션 ID 생성 (오타 수정: subString → substring)
-    const [sessionId] = useState(() => {
-        const savedSessionId = localStorage.getItem(`chat_session_${id}`);
-        return savedSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // 세션 ID 관리: 사용자 로그인 상태에 따라 다르게 처리
+    const [sessionId, setSessionId] = useState(() => {
+        // 로그인 상태 확인 (localStorage에 토큰이 있는지로 임시 확인)
+        const token = localStorage.getItem('accessToken');
+        const userId = localStorage.getItem('userId');
+        
+        if (token && userId) {
+            // 로그인한 사용자는 userId + chatbotId 조합으로 세션 관리
+            const userSessionKey = `chat_user_${userId}_chatbot_${id}`;
+            const savedUserSession = localStorage.getItem(userSessionKey);
+            return savedUserSession || `session_user_${userId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        } else {
+            // 비로그인 사용자는 기존 방식으로 sessionId 관리
+            const anonymousSessionKey = `chat_session_${id}`;
+            const savedSessionId = localStorage.getItem(anonymousSessionKey);
+            return savedSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        }
     });
 
     // 사용자 정보 가져오기
@@ -39,6 +54,23 @@ const ChatPage = () => {
                     if (response.ok) {
                         const data = await response.json();
                         setUser(data.data?.user || null);
+                        
+                        // 사용자 ID를 localStorage에 저장 (세션ID 생성에 사용)
+                        if (data.data?.user?.id) {
+                            localStorage.setItem('userId', data.data.user.id);
+                            
+                            // 로그인 후 세션ID를 사용자 기반으로 업데이트
+                            const userSessionKey = `chat_user_${data.data.user.id}_chatbot_${id}`;
+                            const userSessionId = localStorage.getItem(userSessionKey);
+                            
+                            if (userSessionId) {
+                                setSessionId(userSessionId);
+                            } else {
+                                const newUserSessionId = `session_user_${data.data.user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                                localStorage.setItem(userSessionKey, newUserSessionId);
+                                setSessionId(newUserSessionId);
+                            }
+                        }
                     }
                 }
             } catch (error) {
@@ -47,14 +79,15 @@ const ChatPage = () => {
         };
         
         fetchUserInfo();
-    }, []);
+    }, [id]);
 
+    // 점포 정보, 챗봇 정보, 채팅 기록 가져오기
     useEffect(() => {
         const fetchStoreAndHistory = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                // 점포 정보 가져오기 - 엔드포인트 수정 (/api/store → /api/stores)
+                // 점포 정보 가져오기
                 const storeResponse = await fetch(`/api/stores/${id}`);
                 if (!storeResponse.ok) {
                     throw new Error('점포 정보 불러오기 실패');
@@ -62,7 +95,7 @@ const ChatPage = () => {
                 const storeData = await storeResponse.json();
                 setStore(storeData.data);
 
-                // 챗봇 정보 가져오기 - 엔드포인트 수정 (/api/chatbot → /api/chatbots/store)
+                // 챗봇 정보 가져오기
                 const chatbotResponse = await fetch(`/api/chatbots/store/${id}`);
                 if (!chatbotResponse.ok) {
                     throw new Error('챗봇 정보를 불러오는데 실패했습니다.');
@@ -73,9 +106,22 @@ const ChatPage = () => {
                 setChatbotId(botId);
 
                 // 채팅 기록 조회
-                let historyData = null; // 변수를 미리 선언
+                let historyData = null;
 
-                const historyResponse = await fetch(`/api/chatbots/${botId}/history?sessionId=${sessionId}`);
+                // 인증 헤더 설정 (로그인한 경우)
+                const headers = {};
+                if (user) {
+                    const token = localStorage.getItem('accessToken');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+
+                // 대화 기록 요청
+                const historyResponse = await fetch(
+                    `/api/chatbots/${botId}/history?sessionId=${sessionId}`,
+                    { headers }
+                );
 
                 if (historyResponse.ok) {
                     historyData = await historyResponse.json();
@@ -103,6 +149,7 @@ const ChatPage = () => {
                             });
                         });
                         setMessages(formattedMessages);
+                        setSessionIdSet(true);
                     }
                 }
 
@@ -126,19 +173,28 @@ const ChatPage = () => {
             }
         };
 
-        fetchStoreAndHistory();
-
-        localStorage.setItem(`chat_session_${id}`, sessionId);
+        if (sessionId) {
+            fetchStoreAndHistory();
+            
+            // 세션 ID를 로그인 상태에 따라 적절한 키로 저장
+            if (user) {
+                localStorage.setItem(`chat_user_${user.id}_chatbot_${id}`, sessionId);
+            } else {
+                localStorage.setItem(`chat_session_${id}`, sessionId);
+            }
+        }
 
         return () => {
             // 언마운트 시 작업
         };
-    }, [id, sessionId]);
+    }, [id, sessionId, user]);
 
+    // 메시지 스크롤 자동 이동
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // 메시지 전송 함수
     const sendMessage = async () => {
         if (!newMessage.trim() || isSending) return;
 
@@ -212,6 +268,20 @@ const ChatPage = () => {
             }
 
             const responseData = await response.json();
+            
+            // 응답에서 세션 ID 확인 및 업데이트 (첫 메시지인 경우)
+            if (responseData.data.sessionId && !sessionIdSet) {
+                setSessionId(responseData.data.sessionId);
+                
+                // 로그인 상태에 따라 적절한 키로 sessionId 저장
+                if (user) {
+                    localStorage.setItem(`chat_user_${user.id}_chatbot_${id}`, responseData.data.sessionId);
+                } else {
+                    localStorage.setItem(`chat_session_${id}`, responseData.data.sessionId);
+                }
+                
+                setSessionIdSet(true);
+            }
 
             const botMessage = {
                 id: `bot_${Date.now()}`,
@@ -283,7 +353,7 @@ const ChatPage = () => {
                         {messages.map((message) => (
                             <div
                                 key={message.id}
-                                className={`${styles.message} ${message.isUser ? styles.userMessage : styles.botMessage}`}
+                                className={`${styles.message} ${message.isUser ? styles.userMessage : styles.botMessage} ${message.isError ? styles.errorMessage : ''}`}
                             >
                                 {!message.isUser && (
                                     <div className={styles.botAvatar}>
@@ -310,7 +380,7 @@ const ChatPage = () => {
                         <div ref={messagesEndRef} />
 
                         {isSending && (
-                            <div className={styles.message}>
+                            <div className={`${styles.message} ${styles.botMessage}`}>
                                 <div className={styles.botAvatar}>
                                     <img 
                                         src={store?.image_url || '/placeholder-store.jpg'} 
@@ -363,20 +433,29 @@ const MessageText = ({ message }) => {
     const skipTyping = message.isUser || message.isHistoryMessage;
     
     const { text, isComplete, completeTyping } = useTypewriter(
-        messageText, // undefined 대신 빈 문자열 전달
+        messageText,
         30,
         skipTyping
     );
     
     return (
         <div 
-            className={styles.messageText} 
+            className={styles.messageText}
             onClick={() => !isComplete && completeTyping()}
         >
-            {text} {/* text는 항상 문자열 */}
+            {text}
             {!isComplete && <span className={styles.cursor}>|</span>}
         </div>
     );
+};
+
+MessageText.propTypes = {
+    message: PropTypes.shape({
+        text: PropTypes.string,
+        isUser: PropTypes.bool,
+        isHistoryMessage: PropTypes.bool,
+        isError: PropTypes.bool
+    }).isRequired
 };
 
 export default ChatPage;
