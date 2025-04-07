@@ -43,8 +43,33 @@ const SignIn = () => {
             localStorage.setItem('accessToken', result.data.accessToken);
             localStorage.setItem('refreshToken', result.data.refreshToken);
 
-            // 메인 페이지 이동
-            navigate('/');
+            // 사용자 정보 확인 (관리자 여부)
+            try {
+                const meResponse = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${result.data.accessToken}`
+                    }
+                });
+                
+                if (meResponse.ok) {
+                    const meResult = await meResponse.json();
+                    const userRole = meResult.data.user.role;
+                    
+                    // 관리자인 경우 관리자 대시보드로, 일반 사용자는 메인 페이지로
+                    if (userRole === 'admin') {
+                        navigate('/admin/dashboard');
+                    } else {
+                        navigate('/main');
+                    }
+                } else {
+                    // 사용자 정보 조회 실패 시 기본적으로 메인 페이지로
+                    navigate('/main');
+                }
+            } catch (error) {
+                console.error('사용자 정보 조회 실패:', error);
+                // 오류 발생 시 기본적으로 메인 페이지로
+                navigate('/main');
+            }
         } catch (error) {
             setSignInError(error.message);
         } finally {

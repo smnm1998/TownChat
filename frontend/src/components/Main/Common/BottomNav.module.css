@@ -19,7 +19,11 @@
     @apply text-xs text-white;
 }
 
-.active .navIcon,
+/* 수정: 부모-자식 선택자에서 직접 선택자로 변경 */
+.active .navIcon {
+    @apply text-yellow-400;
+}
+
 .active .navText {
     @apply text-yellow-400;
 }
