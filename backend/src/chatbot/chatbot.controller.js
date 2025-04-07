@@ -136,6 +136,9 @@ const chatWithChatbot = async (req, res, next) => {
             chatOptions
         );
         
+        console.log('요청 헤더:', req.headers);
+        console.log('인증된 사용자:', req.user);
+        console.log('ChatOptions에 전달할 userId:', req.user ? req.user.id : null);
         return success(res, 200, '챗봇 응답 성공', response);
     } catch (error) {
         next(error);

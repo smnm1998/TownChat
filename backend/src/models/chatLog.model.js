@@ -59,6 +59,11 @@ const ChatLog = sequelize.define(
             type: DataTypes.GEOMETRY('POINT'),
             allowNull: true,
         },
+        thread_id: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'OpenAI Assistant API 스레드 ID'
+        },
     },
     {
         timestamps: true,

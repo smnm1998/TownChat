@@ -24,8 +24,8 @@ router.get('/:id/user-sessions', authenticate, chatbotController.getUserChatbotS
 // 챗봇 대화 기록 조회 (미인증 사용자도 접근 가능, 세션ID로 접근)
 router.get('/:id/history', chatbotController.getChatHistory);
 
-// 챗봇과 대화하기 (미인증 사용자도 가능)
-router.post('/:id/chat', chatbotController.chatWithChatbot);
+// 챗봇과 대화하기
+router.post('/:id/chat', authenticate, chatbotController.chatWithChatbot);
 
 // 챗봇 활성화/비활성화 토글
 router.patch('/:id/toggle-active', authenticate, chatbotController.toggleChatbotActive);

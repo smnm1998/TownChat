@@ -326,12 +326,12 @@ const getChatbotById = async (chatbotId) => {
 const getThreadIdBySessionId = async (sessionId) => {
     try {
         const chatlog = await ChatLog.findOne({
-            where: {
-                session_id: sessionId,
-                thread_id: { [Op.not]: null }
-            },
-            order: [['created_at', 'DESC']]
-        });
+        where: {
+            session_id: sessionId,
+            thread_id: { [Op.not]: null }
+        },
+        order: [['created_at', 'DESC']]
+    });
 
         return chatlog ? chatlog.thread_id : null;
     } catch (error) {
@@ -343,6 +343,11 @@ const getThreadIdBySessionId = async (sessionId) => {
 // 챗봇 대화 함수 수정
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     const { userId = null, sessionId = null, location = null } = options;
+    
+    // // 옵션 디버깅 로그 추가
+    // console.log('받은 옵션:', options);
+    // console.log('추출한 userId:', userId);
+    // console.log('추출한 sessionId:', sessionId);
 
     // 챗봇 존재 여부 및 활성화 상태 확인
     const chatbot = await Chatbot.findByPk(chatbotId);
@@ -367,6 +372,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     let threadId = null;
     try {
         threadId = await getThreadIdBySessionId(currentSessionId);
+        console.log('조회된 스레드 ID:', threadId); // 로그 추가
     } catch (error) {
         logger.error('스레드 ID 조회 실패:', error);
     }
@@ -383,6 +389,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         
         // 새로운 스레드 ID 가져오기
         threadId = chatResponse.threadId;
+        console.log('OpenAI API 응답에서 얻은 스레드 ID:', threadId); // 로그 추가
     } catch (error) {
         logger.error('챗봇 대화 중 오류 발생:', error);
         throw new Error('챗봇 응답 생성에 실패했습니다: ' + error.message);
@@ -396,19 +403,28 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             locationPoint = { type: 'Point', coordinates: [location.longitude, location.latitude] };
         }
 
-        await ChatLog.create({
+        const threadIdString = threadId ? String(threadId) : null;
+
+        const logData = {
             chatbot_id: chatbotId,
-            user_id: userId,
+            user_id: userId || null,  // 명시적으로 null 처리
             session_id: currentSessionId,
             message: message,
             response: chatResponse.response,
-            thread_id: threadId,
+            thread_id: threadIdString, // 명시적으로 문자열로 전달
             timestamp: new Date(),
             user_feedback: 'none',
             user_location: locationPoint,
-        });
+        };
+        
+        console.log('저장 직전 데이터:', logData);
+        const savedLog = await ChatLog.create(logData);
+        console.log('저장된 ChatLog ID:', savedLog.id); // 로그 추가
+        console.log('저장된 ChatLog의 user_id:', savedLog.user_id); // 로그 추가
+        console.log('저장된 ChatLog의 thread_id:', savedLog.thread_id); // 로그 추가
     } catch (error) {
         logger.error('대화 로그 저장 중 오류 발생:', error);
+        console.error('대화 로그 저장 오류 상세:', error); // 상세 오류 로그 추가
     }
 
     return {
@@ -531,5 +547,6 @@ module.exports = {
     chatWithChatbot,
     getChatHistory,
     getUserChatSessions,
-    getAllChatbots
+    getAllChatbots,
+    getThreadIdBySessionId  
 };
