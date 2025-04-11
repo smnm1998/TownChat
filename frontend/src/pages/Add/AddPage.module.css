@@ -1,0 +1,87 @@
+.container {
+    @apply flex flex-col min-h-screen bg-yellow-400;
+}
+
+.content {
+    @apply flex-1 px-4 py-6 pb-24 flex flex-col;
+}
+
+.title {
+    @apply text-2xl font-bold text-black mb-2;
+}
+
+.subtitle {
+    @apply text-base text-black mb-8;
+}
+
+.loading {
+    @apply flex justify-center items-center h-48 text-black;
+}
+
+.error {
+    @apply flex flex-col items-center justify-center h-48 text-red-700 bg-red-100 rounded-md p-4;
+}
+
+.retryButton {
+    @apply mt-4 px-4 py-2 bg-white text-black rounded-md;
+}
+
+.form {
+    @apply space-y-6;
+}
+
+.formGroup {
+    @apply space-y-2;
+}
+
+.label {
+    @apply block text-sm font-medium text-black;
+}
+
+.selectWrapper {
+    @apply relative;
+}
+
+.select {
+    @apply w-full py-3 px-4 bg-yellow-100 border border-yellow-500 rounded-md text-black cursor-pointer;
+}
+
+.select.disabled {
+    @apply bg-gray-200 text-gray-500 cursor-not-allowed;
+}
+
+.picker {
+    @apply absolute left-0 right-0 z-30;
+}
+
+.pickerOverlay {
+    @apply fixed inset-0 bg-black bg-opacity-30 z-20;
+}
+
+.pickerContent {
+    @apply absolute left-0 right-0 max-h-60 overflow-auto bg-white border border-gray-200 rounded-md shadow-lg z-30;
+}
+
+.pickerItem {
+    @apply py-2 px-4 hover:bg-yellow-100 cursor-pointer;
+}
+
+.selected {
+    @apply bg-yellow-200 font-medium;
+}
+
+.nextButton {
+    @apply w-full py-3 bg-white text-black font-medium rounded-md mt-8;
+}
+
+.nextButton:disabled {
+    @apply bg-gray-200 text-gray-500 cursor-not-allowed;
+}
+
+.closeButtonWrapper {
+    @apply absolute top-4 right-4;
+}
+
+.closeButton {
+    @apply p-1 bg-white rounded-full text-black;
+}

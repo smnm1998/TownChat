@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { FiSearch } from 'react-icons/fi';
+import { FiSearch, FiX } from 'react-icons/fi'; // FiX 아이콘 import 추가
 import styles from './SearchBar.module.css';
 
 const SearchBar = ({ onSearch, onClear, isSearching = false, initialSearchTerm = '' }) => {
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
-    const [suggestions, setSuggestions] = useState([]);
+    const [suggestions, setSuggestions] = useState([]); // 오타 수정: setSuggestiong -> setSuggestions
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [typingTimeout, setTypingTimeout] = useState(null);
 
@@ -58,7 +58,7 @@ const SearchBar = ({ onSearch, onClear, isSearching = false, initialSearchTerm =
     // 검색어 초기화
     const handleClear = () => {
         setSearchTerm('');
-        setSuggestiong([]);
+        setSuggestions([]); // 오타 수정: setSuggestiong -> setSuggestions
         setShowSuggestions(false);
         if (onClear) onClear();
     };
@@ -72,7 +72,7 @@ const SearchBar = ({ onSearch, onClear, isSearching = false, initialSearchTerm =
     };
 
     const handleSuggestionClick = (suggestion) => {
-        setSearchTerm(suggestions.name);
+        setSearchTerm(suggestion.name); // 수정: suggestions.name -> suggestion.name
         setShowSuggestions(false);
         if (onSearch) {
             onSearch(suggestion.name);
