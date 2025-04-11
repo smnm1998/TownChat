@@ -1,6 +1,7 @@
 const storeService = require('./store.service');
 const { validateCreateStore, validateUpdateStore } = require('./store.validation');
 const { success, paginate } = require('../utils/response.utils');
+const { Store, Op } = require('../models');
 
 // 모든 점포 목록 조회
 const getAllStores = async (req, res, next) => {
@@ -135,6 +136,34 @@ const deleteStore = async (req, res, next) => {
     }
 };
 
+// 점포 검색 제안(자동완성) 컨트롤러
+const getStoreSuggestions = async (req, res, next) => {
+    try {
+        const { query } = req.query;
+        
+        if (!query || query.length < 2) {
+            return success(res, 200, '검색 제안', []);
+        }
+        
+        // 검색어를 포함하는 점포 조회
+        const suggestions = await Store.findAll({
+            where: {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${query}%` } },
+                    { address: { [Op.like]: `%${query}%` } }
+                ],
+                is_active: true
+            },
+            attributes: ['id', 'name', 'address'],
+            limit: 5
+        });
+        
+        return success(res, 200, '검색 제안 조회 성공', suggestions);
+    } catch (error) {
+        next(error);
+    }
+};
+
 // 점포 활성화/비활성화 토글
 const toggleStoreActive = async (req, res, next) => {
     try {
@@ -158,5 +187,6 @@ module.exports = {
     createStore,
     updateStore,
     deleteStore,
-    toggleStoreActive
+    toggleStoreActive,
+    getStoreSuggestions
 };

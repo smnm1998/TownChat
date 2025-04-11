@@ -24,6 +24,9 @@ const upload = multer({
 
 // 라우트 순서 배치 (더 구체적인 경로를 먼저 배치)
 
+router.get('/suggestions', storeController.getStoreSuggestions);
+
+
 // 사용자의 점포 목록 조회 - 경로 수정
 router.get('/user/stores', authenticate, storeController.getUserStores);
 
