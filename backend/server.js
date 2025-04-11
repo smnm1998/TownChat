@@ -12,7 +12,9 @@ const {
 // 라우트 파일 임포트
 const authRoutes = require('./src/auth/auth.routes');
 const storeRoutes = require('./src/store/store.routes'); 
-const chatbotRoutes = require('./src/chatbot/chatbot.routes'); 
+const chatbotRoutes = require('./src/chatbot/chatbot.routes');
+
+const regionRoutes = require('./src/region/region.routes');
 
 // app 생성 먼저
 const app = configureApp();
@@ -24,6 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/chatbots', chatbotRoutes);
+app.use('/api/regions', regionRoutes);
 
 // API 루트 경로
 app.get('/api', (req, res) => {
