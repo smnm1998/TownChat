@@ -4,7 +4,7 @@ const openaiService = require('../services/openai.service');
 const logger = require('../utils/logger');
 
 // 점포 챗봇 생성
-// 점포 챗봇 생성 함수 수정 
+// 점포 챗봇 생성 함수 수정
 const createChatbot = async (storeId, chatbotData) => {
     // 점포 존재 여부 확인
     const store = await Store.findByPk(storeId);
@@ -14,7 +14,7 @@ const createChatbot = async (storeId, chatbotData) => {
 
     // 이미 챗봇이 있는지 확인
     const existingChatbot = await Chatbot.findOne({
-        where: { store_id: storeId }
+        where: { store_id: storeId },
     });
 
     if (existingChatbot) {
@@ -40,7 +40,7 @@ const createChatbot = async (storeId, chatbotData) => {
 
     // 이미 존재하는 assistant_id 사용 또는 새로 생성
     let assistantId = chatbotData.assistant_id || null;
-    
+
     if (!assistantId) {
         try {
             assistantId = await openaiService.createAssistant(
@@ -60,14 +60,15 @@ const createChatbot = async (storeId, chatbotData) => {
     const newChatbot = await Chatbot.create({
         store_id: storeId,
         name: chatbotName,
-        knowledge_base: knowledge,  // 사용자가 제공한 지식 베이스만 저장
-        greeting_message: chatbotData.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
+        knowledge_base: knowledge, // 사용자가 제공한 지식 베이스만 저장
+        greeting_message:
+            chatbotData.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
         model: chatbotData.model || 'gpt-4o-mini',
         is_active: true,
         assistant_id: assistantId,
         last_updated: new Date(),
     });
-    
+
     return newChatbot;
 };
 
@@ -88,7 +89,10 @@ const createStore = async (userId, storeData, files = null) => {
         }
 
         // 타임스탬프 + 원본 파일명 생성
-        const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s/g, '_')}`;
+        const fileName = `${Date.now()}-${imageFile.originalname.replace(
+            /\s/g,
+            '_'
+        )}`;
         const filePath = path.join(uploadDir, fileName);
 
         // 파일 저장
@@ -106,7 +110,7 @@ const createStore = async (userId, storeData, files = null) => {
             // 텍스트 파일 읽기
             const knowledgeFile = files.knowledge_base_file[0];
             const knowledgeContent = knowledgeFile.buffer.toString('utf8');
-            
+
             // 지식 베이스 텍스트에 파일 내용 추가
             if (knowledgeContent) {
                 knowledgeBase += '\n\n' + knowledgeContent;
@@ -124,33 +128,41 @@ const createStore = async (userId, storeData, files = null) => {
         image_url: imageUrl,
         knowledge_base: knowledgeBase,
         // assistant_id 필드가 있다면 저장 (OpenAI에서 직접 생성한 Assistant ID)
-        assistant_id: storeData.assistant_id || null
+        assistant_id: storeData.assistant_id || null,
     });
 
     // 점포 생성 후 자동으로 챗봇 생성
     try {
         logger.info(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 시작`);
-        
+
         // 챗봇 생성에 필요한 데이터 준비
         const chatbotData = {
             name: `${newStore.name} 챗봇`,
             greeting_message: '안녕하세요! 무엇을 도와드릴까요?',
             model: 'gpt-4o-mini',
             // 점포에 assistant_id가 있으면 그것을 사용
-            assistant_id: newStore.assistant_id || null
+            assistant_id: newStore.assistant_id || null,
         };
-        
+
         // 챗봇 생성 서비스 호출
-        const chatbot = await chatbotService.createChatbot(newStore.id, chatbotData);
-        
-        logger.info(`점포 ID ${newStore.id}에 대한 챗봇이 성공적으로 생성되었습니다. 챗봇 ID: ${chatbot.id}`);
+        const chatbot = await chatbotService.createChatbot(
+            newStore.id,
+            chatbotData
+        );
+
+        logger.info(
+            `점포 ID ${newStore.id}에 대한 챗봇이 성공적으로 생성되었습니다. 챗봇 ID: ${chatbot.id}`
+        );
     } catch (error) {
-        logger.error(`점포 ID ${newStore.id}에 대한 챗봇 자동 생성 중 오류 발생:`, error);
+        logger.error(
+            `점포 ID ${newStore.id}에 대한 챗봇 자동 생성 중 오류 발생:`,
+            error
+        );
         // 챗봇 생성 실패해도 점포 생성은 성공으로 처리
     }
 
     return newStore;
-}
+};
 
 const updateChatbot = async (chatbotId, userId, updateData) => {
     // 챗봇 존재 여부 확인
@@ -158,7 +170,15 @@ const updateChatbot = async (chatbotId, userId, updateData) => {
         include: [
             {
                 model: Store,
-                attributes: ['id', 'name', 'owner_id', 'address', 'phone', 'description', 'owner_name'],
+                attributes: [
+                    'id',
+                    'name',
+                    'owner_id',
+                    'address',
+                    'phone',
+                    'description',
+                    'owner_name',
+                ],
             },
         ],
     });
@@ -202,7 +222,8 @@ const updateChatbot = async (chatbotId, userId, updateData) => {
     await chatbot.update({
         name: updateData.name || chatbot.name,
         knowledge_base: newKnowledge, // 사용자가 제공한 지식 베이스만 저장
-        greeting_message: updateData.greeting_message || chatbot.greeting_message,
+        greeting_message:
+            updateData.greeting_message || chatbot.greeting_message,
         model: updateData.model || chatbot.model,
         last_updated: new Date(),
     });
@@ -239,9 +260,9 @@ const deleteChatbot = async (chatbotId, userId) => {
         logger.error('assistant 삭제 실패', error); // 어시스턴트 삭제 실패해도 DB에서는 삭제 진행
     }
 
-    // 챗봇 삭제 
+    // 챗봇 삭제
     await chatbot.destroy();
-    
+
     // 연결된 스토어도 삭제
     if (chatbot.Store && chatbot.Store.id) {
         const store = await Store.findByPk(chatbot.Store.id);
@@ -249,7 +270,7 @@ const deleteChatbot = async (chatbotId, userId) => {
             await store.destroy();
         }
     }
-    
+
     return true;
 };
 
@@ -289,7 +310,14 @@ const getChatbotByStoreId = async (storeId) => {
         include: [
             {
                 model: Store,
-                attributes: ['id', 'name', 'address', 'phone', 'description', 'owner_name'],
+                attributes: [
+                    'id',
+                    'name',
+                    'address',
+                    'phone',
+                    'description',
+                    'owner_name',
+                ],
             },
         ],
     });
@@ -311,7 +339,14 @@ const getChatbotById = async (chatbotId) => {
         include: [
             {
                 model: Store,
-                attributes: ['id', 'name', 'address', 'phone', 'description', 'owner_name'],
+                attributes: [
+                    'id',
+                    'name',
+                    'address',
+                    'phone',
+                    'description',
+                    'owner_name',
+                ],
             },
         ],
     });
@@ -326,12 +361,12 @@ const getChatbotById = async (chatbotId) => {
 const getThreadIdBySessionId = async (sessionId) => {
     try {
         const chatlog = await ChatLog.findOne({
-        where: {
-            session_id: sessionId,
-            thread_id: { [Op.not]: null }
-        },
-        order: [['created_at', 'DESC']]
-    });
+            where: {
+                session_id: sessionId,
+                thread_id: { [Op.not]: null },
+            },
+            order: [['created_at', 'DESC']],
+        });
 
         return chatlog ? chatlog.thread_id : null;
     } catch (error) {
@@ -340,17 +375,19 @@ const getThreadIdBySessionId = async (sessionId) => {
     }
 };
 
-// 챗봇 대화 함수 수정
+// 챗봇 대화 함수
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     const { userId = null, sessionId = null, location = null } = options;
-    
-    // // 옵션 디버깅 로그 추가
-    // console.log('받은 옵션:', options);
-    // console.log('추출한 userId:', userId);
-    // console.log('추출한 sessionId:', sessionId);
 
     // 챗봇 존재 여부 및 활성화 상태 확인
-    const chatbot = await Chatbot.findByPk(chatbotId);
+    const chatbot = await Chatbot.findByPk(chatbotId, {
+        include: [
+            {
+                model: Store,
+                attributes: ['id', 'name', 'description', 'owner_name'],
+            },
+        ],
+    });
 
     if (!chatbot) {
         throw new NotFoundError('챗봇을 찾을 수 없습니다.');
@@ -365,9 +402,13 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         throw new Error('챗봇 설정이 완료되지 않았습니다.');
     }
 
+    logger.info(`Calling OpenAI with Assistant ID: ${chatbot.assistant_id}`);
+
     // 새 세션 ID 생성 (제공되지 않은 경우)
-    const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+    const currentSessionId =
+        sessionId ||
+        `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
     // 세션 ID로 기존 스레드 ID 조회
     let threadId = null;
     try {
@@ -376,23 +417,89 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     } catch (error) {
         logger.error('스레드 ID 조회 실패:', error);
     }
-    
+
     // OpenAI API를 통해 챗봇과 대화
     let chatResponse;
     try {
+        // 챗봇 어시스턴트 ID 확인 - 없으면 새로 생성
+        if (!chatbot.assistant_id) {
+            logger.info('Assistant ID가 없습니다. 새로 생성합니다.');
+            const newAssistantId = await createNewAssistant(chatbot);
+            chatbot.assistant_id = newAssistantId;
+            await chatbot.save();
+        }
+
         chatResponse = await openaiService.chatWithAssistant(
             chatbot.assistant_id,
             message,
             currentSessionId,
             threadId
         );
-        
+
         // 새로운 스레드 ID 가져오기
         threadId = chatResponse.threadId;
-        console.log('OpenAI API 응답에서 얻은 스레드 ID:', threadId); // 로그 추가
     } catch (error) {
-        logger.error('챗봇 대화 중 오류 발생:', error);
-        throw new Error('챗봇 응답 생성에 실패했습니다: ' + error.message);
+        // Assistant ID 관련 오류면 새로 생성하고 다시 시도
+        if (
+            error.message.includes('Assistant ID') &&
+            error.message.includes('찾을 수 없습니다')
+        ) {
+            logger.warn(
+                `Assistant ID ${chatbot.assistant_id} 찾을 수 없음. 새로 생성합니다.`
+            );
+
+            try {
+                // 새 Assistant 생성
+                const newAssistantId = await createNewAssistant(chatbot);
+
+                // DB 업데이트
+                chatbot.assistant_id = newAssistantId;
+                await chatbot.save();
+
+                // 새 Assistant로 다시 시도
+                chatResponse = await openaiService.chatWithAssistant(
+                    newAssistantId,
+                    message,
+                    currentSessionId,
+                    threadId
+                );
+
+                threadId = chatResponse.threadId;
+            } catch (retryError) {
+                logger.error('새 Assistant 생성 및 재시도 실패:', retryError);
+                throw new Error(
+                    '챗봇 서비스 재구성에 실패했습니다. 나중에 다시 시도해주세요.'
+                );
+            }
+        } else {
+            logger.error('챗봇 대화 중 오류 발생:', error);
+            throw error;
+        }
+    }
+
+    async function createNewAssistant(chatbot) {
+        const store = await Store.findByPk(chatbot.store_id);
+        if (!store) {
+            throw new Error('연결된 점포 정보를 찾을 수 없습니다.');
+        }
+
+        const assistantInstructions = `
+            당신은 '${store.name}'의 챗봇 도우미입니다. 
+            고객들에게 친절하고 정확한 정보를 제공해주세요.
+            항상 공손하고 전문적인 태도를 유지하세요.
+            제공된 정보를 기반으로 질문에 답변하되, 모르는 내용에 대해서는 솔직하게 모른다고 말하세요.
+            
+            다음은 지식 베이스 내용입니다:
+            ${chatbot.knowledge_base || ''}
+        `;
+
+        const newAssistantId = await openaiService.createAssistant(
+            chatbot.name || `${store.name} 챗봇`,
+            assistantInstructions,
+            chatbot.model || 'gpt-4o-mini'
+        );
+
+        return newAssistantId;
     }
 
     // 대화 로그 저장
@@ -400,14 +507,17 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         // 위치 정보 처리
         let locationPoint = null;
         if (location && location.latitude && location.longitude) {
-            locationPoint = { type: 'Point', coordinates: [location.longitude, location.latitude] };
+            locationPoint = {
+                type: 'Point',
+                coordinates: [location.longitude, location.latitude],
+            };
         }
 
         const threadIdString = threadId ? String(threadId) : null;
 
         const logData = {
             chatbot_id: chatbotId,
-            user_id: userId || null,  // 명시적으로 null 처리
+            user_id: userId || null, // 명시적으로 null 처리
             session_id: currentSessionId,
             message: message,
             response: chatResponse.response,
@@ -416,7 +526,13 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             user_feedback: 'none',
             user_location: locationPoint,
         };
-        
+
+        if (chatResponse && chatResponse.response) {
+            chatResponse.response = chatResponse.response
+                .replace(/undefined/g, '')
+                .trim();
+        }
+
         console.log('저장 직전 데이터:', logData);
         const savedLog = await ChatLog.create(logData);
         console.log('저장된 ChatLog ID:', savedLog.id); // 로그 추가
@@ -434,15 +550,20 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
 };
 
 // 대화 기록 조회 함수 수정
-const getChatHistory = async (chatbotId, sessionId, userId = null, options = {}) => {
+const getChatHistory = async (
+    chatbotId,
+    sessionId,
+    userId = null,
+    options = {}
+) => {
     const { page = 1, limit = 50 } = options || {};
     const offset = (page - 1) * limit;
 
     // 쿼리 조건 설정
     const whereClause = {
-        chatbot_id: chatbotId
+        chatbot_id: chatbotId,
     };
-    
+
     // 로그인한 사용자는 user_id로 필터링
     // 비로그인 사용자는 sessionId로 필터링
     if (userId) {
@@ -474,18 +595,24 @@ const getChatHistory = async (chatbotId, sessionId, userId = null, options = {})
     }
 };
 
-
 // 모든 챗봇 목록 조회
 const getAllChatbots = async () => {
     const chatbots = await Chatbot.findAll({
         include: [
             {
                 model: Store,
-                attributes: ['id', 'name', 'address', 'phone', 'description', 'owner_name'],
+                attributes: [
+                    'id',
+                    'name',
+                    'address',
+                    'phone',
+                    'description',
+                    'owner_name',
+                ],
             },
         ],
     });
-    
+
     return chatbots;
 };
 
@@ -504,7 +631,7 @@ const getUserChatSessions = async (userId, options = {}) => {
         ],
         where: {
             user_id: userId,
-            chatbot_id: chatbotId
+            chatbot_id: chatbotId,
         },
         group: ['session_id'],
         order: [[sequelize.literal('last_chat'), 'DESC']],
@@ -515,11 +642,17 @@ const getUserChatSessions = async (userId, options = {}) => {
     // 총 세션 수 조회
     const countResult = await ChatLog.findAll({
         attributes: [
-            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('session_id'))), 'session_count'],
+            [
+                sequelize.fn(
+                    'COUNT',
+                    sequelize.fn('DISTINCT', sequelize.col('session_id'))
+                ),
+                'session_count',
+            ],
         ],
         where: {
             user_id: userId,
-            chatbot_id: chatbotId
+            chatbot_id: chatbotId,
         },
         raw: true,
     });
@@ -548,5 +681,5 @@ module.exports = {
     getChatHistory,
     getUserChatSessions,
     getAllChatbots,
-    getThreadIdBySessionId  
+    getThreadIdBySessionId,
 };

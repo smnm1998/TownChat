@@ -25,17 +25,27 @@ const ChatPage = () => {
         // 로그인 상태 확인 (localStorage에 토큰이 있는지로 임시 확인)
         const token = localStorage.getItem('accessToken');
         const userId = localStorage.getItem('userId');
-        
+
         if (token && userId) {
             // 로그인한 사용자는 userId + chatbotId 조합으로 세션 관리
             const userSessionKey = `chat_user_${userId}_chatbot_${id}`;
             const savedUserSession = localStorage.getItem(userSessionKey);
-            return savedUserSession || `session_user_${userId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            return (
+                savedUserSession ||
+                `session_user_${userId}_${Date.now()}_${Math.random()
+                    .toString(36)
+                    .substring(2, 9)}`
+            );
         } else {
             // 비로그인 사용자는 기존 방식으로 sessionId 관리
             const anonymousSessionKey = `chat_session_${id}`;
             const savedSessionId = localStorage.getItem(anonymousSessionKey);
-            return savedSessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            return (
+                savedSessionId ||
+                `session_${Date.now()}_${Math.random()
+                    .toString(36)
+                    .substring(2, 9)}`
+            );
         }
     });
 
@@ -47,37 +57,45 @@ const ChatPage = () => {
                 if (token) {
                     const response = await fetch('/api/auth/me', {
                         headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                            Authorization: `Bearer ${token}`,
+                        },
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         setUser(data.data?.user || null);
-                        
+
                         // 사용자 ID를 localStorage에 저장 (세션ID 생성에 사용)
                         if (data.data?.user?.id) {
                             localStorage.setItem('userId', data.data.user.id);
-                            
+
                             // 로그인 후 세션ID를 사용자 기반으로 업데이트
                             const userSessionKey = `chat_user_${data.data.user.id}_chatbot_${id}`;
-                            const userSessionId = localStorage.getItem(userSessionKey);
-                            
+                            const userSessionId =
+                                localStorage.getItem(userSessionKey);
+
                             if (userSessionId) {
                                 setSessionId(userSessionId);
                             } else {
-                                const newUserSessionId = `session_user_${data.data.user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-                                localStorage.setItem(userSessionKey, newUserSessionId);
+                                const newUserSessionId = `session_user_${
+                                    data.data.user.id
+                                }_${Date.now()}_${Math.random()
+                                    .toString(36)
+                                    .substring(2, 9)}`;
+                                localStorage.setItem(
+                                    userSessionKey,
+                                    newUserSessionId
+                                );
                                 setSessionId(newUserSessionId);
                             }
                         }
                     }
                 }
             } catch (error) {
-                console.error("Error fetching user info:", error);
+                console.error('Error fetching user info:', error);
             }
         };
-        
+
         fetchUserInfo();
     }, [id]);
 
@@ -96,7 +114,9 @@ const ChatPage = () => {
                 setStore(storeData.data);
 
                 // 챗봇 정보 가져오기
-                const chatbotResponse = await fetch(`/api/chatbots/store/${id}`);
+                const chatbotResponse = await fetch(
+                    `/api/chatbots/store/${id}`
+                );
                 if (!chatbotResponse.ok) {
                     throw new Error('챗봇 정보를 불러오는데 실패했습니다.');
                 }
@@ -129,14 +149,18 @@ const ChatPage = () => {
                     if (historyData.data && Array.isArray(historyData.data)) {
                         const formattedMessages = [];
 
-                        historyData.data.forEach(entry => {
+                        historyData.data.forEach((entry) => {
                             // 사용자 메시지
                             formattedMessages.push({
                                 id: `user_${entry.id}`,
                                 text: entry.message,
                                 isUser: true,
-                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now()),
-                                isHistoryMessage: true
+                                timestamp: new Date(
+                                    entry.timestamp ||
+                                        entry.created_at ||
+                                        Date.now()
+                                ),
+                                isHistoryMessage: true,
                             });
 
                             // 챗봇 응답
@@ -144,8 +168,12 @@ const ChatPage = () => {
                                 id: `bot_${entry.id}`,
                                 text: entry.response,
                                 isUser: false,
-                                timestamp: new Date(entry.timestamp || entry.created_at || Date.now()),
-                                isHistoryMessage: true
+                                timestamp: new Date(
+                                    entry.timestamp ||
+                                        entry.created_at ||
+                                        Date.now()
+                                ),
+                                isHistoryMessage: true,
                             });
                         });
                         setMessages(formattedMessages);
@@ -154,20 +182,28 @@ const ChatPage = () => {
                 }
 
                 // 히스토리가 없거나 응답이 성공적이지 않은 경우 인사말 메시지 표시
-                if (!historyResponse.ok || (historyData && (!historyData.data || historyData.data.length === 0))) {
+                if (
+                    !historyResponse.ok ||
+                    (historyData &&
+                        (!historyData.data || historyData.data.length === 0))
+                ) {
                     const greetingMessage = {
                         id: 'initial',
-                        text: chatbotData.data.greeting_message || '안녕하세요! 무엇을 도와드릴까요?',
+                        text:
+                            chatbotData.data.greeting_message ||
+                            '안녕하세요! 무엇을 도와드릴까요?',
                         isUser: false,
                         timestamp: new Date(),
-                        isHistoryMessage: true
+                        isHistoryMessage: true,
                     };
 
                     setMessages([greetingMessage]);
                 }
             } catch (error) {
                 console.error('데이터 로딩 중 오류: ', error);
-                setError(error.message || '데이터를 불러오는데 문제가 발생했습니다.');
+                setError(
+                    error.message || '데이터를 불러오는데 문제가 발생했습니다.'
+                );
             } finally {
                 setIsLoading(false);
             }
@@ -175,10 +211,13 @@ const ChatPage = () => {
 
         if (sessionId) {
             fetchStoreAndHistory();
-            
+
             // 세션 ID를 로그인 상태에 따라 적절한 키로 저장
             if (user) {
-                localStorage.setItem(`chat_user_${user.id}_chatbot_${id}`, sessionId);
+                localStorage.setItem(
+                    `chat_user_${user.id}_chatbot_${id}`,
+                    sessionId
+                );
             } else {
                 localStorage.setItem(`chat_session_${id}`, sessionId);
             }
@@ -202,10 +241,10 @@ const ChatPage = () => {
             id: `user_${Date.now()}`,
             text: newMessage,
             isUser: true,
-            timestamp: new Date()
+            timestamp: new Date(),
         };
 
-        setMessages(prev => [...prev, userMessage]);
+        setMessages((prev) => [...prev, userMessage]);
         setNewMessage('');
         setIsSending(true);
 
@@ -219,15 +258,19 @@ const ChatPage = () => {
             if (navigator.geolocation) {
                 try {
                     const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            timeout: 5000,
-                            maximumAge: 10000
-                        });
+                        navigator.geolocation.getCurrentPosition(
+                            resolve,
+                            reject,
+                            {
+                                timeout: 5000,
+                                maximumAge: 10000,
+                            }
+                        );
                     });
-                    
+
                     location = {
                         latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
+                        longitude: position.coords.longitude,
                     };
                 } catch (e) {
                     console.log('위치 정보를 가져올 수 없습니다:', e);
@@ -237,7 +280,7 @@ const ChatPage = () => {
             // 요청 본문 구성
             const requestBody = {
                 message: newMessage,
-                sessionId: sessionId
+                sessionId: sessionId,
             };
 
             // 위치 정보가 있으면 추가
@@ -247,9 +290,9 @@ const ChatPage = () => {
 
             // 헤더 구성 - 로그인한 경우 인증 토큰 추가
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             };
-            
+
             if (user) {
                 const token = localStorage.getItem('accessToken');
                 if (token) {
@@ -260,7 +303,7 @@ const ChatPage = () => {
             const response = await fetch(`/api/chatbots/${chatbotId}/chat`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
             });
 
             if (!response.ok) {
@@ -268,29 +311,37 @@ const ChatPage = () => {
             }
 
             const responseData = await response.json();
-            
+
             // 응답에서 세션 ID 확인 및 업데이트 (첫 메시지인 경우)
             if (responseData.data.sessionId && !sessionIdSet) {
                 setSessionId(responseData.data.sessionId);
-                
+
                 // 로그인 상태에 따라 적절한 키로 sessionId 저장
                 if (user) {
-                    localStorage.setItem(`chat_user_${user.id}_chatbot_${id}`, responseData.data.sessionId);
+                    localStorage.setItem(
+                        `chat_user_${user.id}_chatbot_${id}`,
+                        responseData.data.sessionId
+                    );
                 } else {
-                    localStorage.setItem(`chat_session_${id}`, responseData.data.sessionId);
+                    localStorage.setItem(
+                        `chat_session_${id}`,
+                        responseData.data.sessionId
+                    );
                 }
-                
+
                 setSessionIdSet(true);
             }
 
             const botMessage = {
                 id: `bot_${Date.now()}`,
-                text: responseData.data.response,
+                text: responseData.data.response
+                    .replace(/undefined/g, '')
+                    .trim(),
                 isUser: false,
-                timestamp: new Date()
+                timestamp: new Date(),
             };
 
-            setMessages(prev => [...prev, botMessage]);
+            setMessages((prev) => [...prev, botMessage]);
         } catch (error) {
             console.error('메시지 전송 중 오류', error);
 
@@ -299,10 +350,10 @@ const ChatPage = () => {
                 text: '죄송합니다, 메시지를 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
                 isUser: false,
                 isError: true,
-                timestamp: new Date()
+                timestamp: new Date(),
             };
 
-            setMessages(prev => [...prev, errorMessage]);
+            setMessages((prev) => [...prev, errorMessage]);
         } finally {
             setIsSending(false);
             inputRef.current?.focus();
@@ -326,26 +377,32 @@ const ChatPage = () => {
                 <button
                     className={styles.backButton}
                     onClick={handleGoBack}
-                    aria-label="뒤로 가기">
-                        <FiArrowLeft />
+                    aria-label="뒤로 가기"
+                >
+                    <FiArrowLeft />
                 </button>
                 <h1 className={styles.storeName}>
-                    {isLoading ? '로딩 중 ...' : store?.name || '점포 정보 없음'}
+                    {isLoading
+                        ? '로딩 중 ...'
+                        : store?.name || '점포 정보 없음'}
                 </h1>
             </header>
 
             <div className={styles.messageContainer}>
                 {isLoading ? (
                     <div className={styles.loadingContainer}>
-                        <div className={styles.loading}>메시지를 불러오는 중...</div>
+                        <div className={styles.loading}>
+                            메시지를 불러오는 중...
+                        </div>
                     </div>
                 ) : error ? (
                     <div className={styles.errorContainer}>
                         <div className={styles.error}>{error}</div>
                         <button
                             className={styles.retryButton}
-                            onClick={() => window.location.reload()}>
-                                다시 시도
+                            onClick={() => window.location.reload()}
+                        >
+                            다시 시도
                         </button>
                     </div>
                 ) : (
@@ -353,16 +410,26 @@ const ChatPage = () => {
                         {messages.map((message) => (
                             <div
                                 key={message.id}
-                                className={`${styles.message} ${message.isUser ? styles.userMessage : styles.botMessage} ${message.isError ? styles.errorMessage : ''}`}
+                                className={`${styles.message} ${
+                                    message.isUser
+                                        ? styles.userMessage
+                                        : styles.botMessage
+                                } ${
+                                    message.isError ? styles.errorMessage : ''
+                                }`}
                             >
                                 {!message.isUser && (
                                     <div className={styles.botAvatar}>
-                                        <img 
-                                            src={store?.image_url || '/placeholder-store.jpg'} 
+                                        <img
+                                            src={
+                                                store?.image_url ||
+                                                '/placeholder-store.jpg'
+                                            }
                                             alt={store?.name}
                                             className={styles.avatarImage}
                                             onError={(e) => {
-                                                e.target.src = '/placeholder-store.jpg';
+                                                e.target.src =
+                                                    '/placeholder-store.jpg';
                                             }}
                                         />
                                     </div>
@@ -370,9 +437,23 @@ const ChatPage = () => {
                                 <div className={styles.messageContent}>
                                     <MessageText message={message} />
                                     <div className={styles.messageTime}>
-                                        {message.timestamp && typeof message.timestamp.toLocaleTimeString === 'function' 
-                                            ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                            : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {message.timestamp &&
+                                        typeof message.timestamp
+                                            .toLocaleTimeString === 'function'
+                                            ? message.timestamp.toLocaleTimeString(
+                                                  [],
+                                                  {
+                                                      hour: '2-digit',
+                                                      minute: '2-digit',
+                                                  }
+                                              )
+                                            : new Date().toLocaleTimeString(
+                                                  [],
+                                                  {
+                                                      hour: '2-digit',
+                                                      minute: '2-digit',
+                                                  }
+                                              )}
                                     </div>
                                 </div>
                             </div>
@@ -380,14 +461,20 @@ const ChatPage = () => {
                         <div ref={messagesEndRef} />
 
                         {isSending && (
-                            <div className={`${styles.message} ${styles.botMessage}`}>
+                            <div
+                                className={`${styles.message} ${styles.botMessage}`}
+                            >
                                 <div className={styles.botAvatar}>
-                                    <img 
-                                        src={store?.image_url || '/placeholder-store.jpg'} 
+                                    <img
+                                        src={
+                                            store?.image_url ||
+                                            '/placeholder-store.jpg'
+                                        }
                                         alt={store?.name}
                                         className={styles.avatarImage}
                                         onError={(e) => {
-                                            e.target.src = '/placeholder-store.jpg';
+                                            e.target.src =
+                                                '/placeholder-store.jpg';
                                         }}
                                     />
                                 </div>
@@ -414,7 +501,9 @@ const ChatPage = () => {
                     ref={inputRef}
                 />
                 <button
-                    className={`${styles.sendButton} ${!newMessage.trim() || isSending ? styles.disabled : ''}`}
+                    className={`${styles.sendButton} ${
+                        !newMessage.trim() || isSending ? styles.disabled : ''
+                    }`}
                     onClick={sendMessage}
                     disabled={!newMessage.trim() || isSending}
                     aria-label="메시지 보내기"
@@ -429,17 +518,17 @@ const ChatPage = () => {
 // 메시지 텍스트 컴포넌트 - 타이핑 효과 적용
 const MessageText = ({ message }) => {
     // message.text가 undefined인 경우 빈 문자열로 대체
-    const messageText = message.text || '';
+    const messageText = (message.text || '').replace(/undefined/g, '').trim();
     const skipTyping = message.isUser || message.isHistoryMessage;
-    
+
     const { text, isComplete, completeTyping } = useTypewriter(
         messageText,
         30,
         skipTyping
     );
-    
+
     return (
-        <div 
+        <div
             className={styles.messageText}
             onClick={() => !isComplete && completeTyping()}
         >
@@ -454,8 +543,8 @@ MessageText.propTypes = {
         text: PropTypes.string,
         isUser: PropTypes.bool,
         isHistoryMessage: PropTypes.bool,
-        isError: PropTypes.bool
-    }).isRequired
+        isError: PropTypes.bool,
+    }).isRequired,
 };
 
 export default ChatPage;
