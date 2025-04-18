@@ -295,6 +295,122 @@ const getAllChatbots = async (req, res, next) => {
     }
 };
 
+// chatbot.controller.js에 추가
+const resetAssistantId = async (req, res, next) => {
+    try {
+        const chatbotId = parseInt(req.params.id);
+        const chatbot = await Chatbot.findByPk(chatbotId, {
+            include: [
+                {
+                    model: Store,
+                    attributes: ['id', 'name', 'owner_id'],
+                }
+            ]
+        });
+        
+        if (!chatbot) {
+            throw new NotFoundError('챗봇을 찾을 수 없습니다.');
+        }
+        
+        // 권한 확인 (챗봇 소유자 또는 관리자만 가능)
+        if (chatbot.Store.owner_id !== req.user.id && req.user.role !== 'admin') {
+            throw new ForbiddenError('해당 챗봇을 수정할 권한이 없습니다.');
+        }
+        
+        // Assistant ID 저장
+        const oldAssistantId = chatbot.assistant_id;
+        
+        // 기존 Assistant ID가 있으면 삭제 시도
+        if (oldAssistantId) {
+            try {
+                await openaiService.deleteAssistant(oldAssistantId);
+                logger.info(`OpenAI Assistant 삭제 성공: ${oldAssistantId}`);
+            } catch (error) {
+                // 삭제 실패해도 계속 진행 (로그만 남김)
+                logger.error(`OpenAI Assistant 삭제 실패 (ID: ${oldAssistantId}):`, error);
+            }
+        }
+        
+        // DB에서 assistant_id 필드 null로 업데이트
+        await chatbot.update({ assistant_id: null });
+        
+        return success(res, 200, 'Assistant ID가 초기화되었습니다. 새 대화를 시작하기 전에 관리자가 새 Assistant ID를 설정해야 합니다.', {
+            id: chatbot.id,
+            name: chatbot.name,
+            old_assistant_id: oldAssistantId,
+            current_assistant_id: null
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const setupAssistantId = async (req, res, next) => {
+    try {
+        const chatbotId = parseInt(req.params.id);
+        const { assistant_id } = req.body;
+        
+        // assistant_id 요청 검증
+        if (!assistant_id || !assistant_id.startsWith('asst_')) {
+            throw new ValidationError('유효한 OpenAI Assistant ID 형식이 아닙니다. (예: asst_mNVgXGeExVjGMSJI3pI6uhx)');
+        }
+        
+        const chatbot = await Chatbot.findByPk(chatbotId, {
+            include: [
+                {
+                    model: Store,
+                    attributes: ['id', 'name', 'owner_id'],
+                }
+            ]
+        });
+        
+        if (!chatbot) {
+            throw new NotFoundError('챗봇을 찾을 수 없습니다.');
+        }
+        
+        // 권한 확인 (챗봇 소유자 또는 관리자만 가능)
+        if (chatbot.Store.owner_id !== req.user.id && req.user.role !== 'admin') {
+            throw new ForbiddenError('해당 챗봇을 수정할 권한이 없습니다.');
+        }
+        
+        // Assistant ID 확인 시도
+        try {
+            // OpenAI API를 통해 assistant_id가 실제로 존재하는지 확인
+            // 이 부분은 OpenAI API의 변경에 따라 수정이 필요할 수 있음
+            const assistant = await openai.beta.assistants.retrieve(assistant_id);
+            logger.info(`Assistant ID 확인 성공: ${assistant_id}, 이름: ${assistant.name}`);
+        } catch (error) {
+            logger.error(`Assistant ID 확인 실패: ${assistant_id}`, error);
+            throw new ValidationError('제공된 Assistant ID가 유효하지 않거나 접근할 수 없습니다. 올바른 ID를 입력해주세요.');
+        }
+        
+        // 기존 Assistant ID가 있으면 삭제 시도 (선택적)
+        if (chatbot.assistant_id && chatbot.assistant_id !== assistant_id) {
+            try {
+                await openaiService.deleteAssistant(chatbot.assistant_id);
+                logger.info(`이전 OpenAI Assistant 삭제 성공: ${chatbot.assistant_id}`);
+            } catch (deleteError) {
+                // 삭제 실패해도 계속 진행 (로그만 남김)
+                logger.error(`이전 OpenAI Assistant 삭제 실패 (ID: ${chatbot.assistant_id}):`, deleteError);
+            }
+        }
+        
+        // DB에 새 assistant_id 업데이트
+        await chatbot.update({ 
+            assistant_id: assistant_id,
+            last_updated: new Date()
+        });
+        
+        return success(res, 200, 'Assistant ID가 성공적으로 설정되었습니다.', {
+            id: chatbot.id,
+            name: chatbot.name,
+            assistant_id: assistant_id
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createChatbot,
     updateChatbot,
@@ -306,5 +422,7 @@ module.exports = {
     getChatHistory,
     getUserChatSessions,
     getAllChatbots,
-    getUserChatbotSessions
+    getUserChatbotSessions,
+    resetAssistantId,
+    setupAssistantId
 };

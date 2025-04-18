@@ -421,85 +421,31 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     // OpenAI API를 통해 챗봇과 대화
     let chatResponse;
     try {
-        // 챗봇 어시스턴트 ID 확인 - 없으면 새로 생성
+        // 챗봇 어시스턴트 ID 확인 - 없으면 오류 발생
         if (!chatbot.assistant_id) {
-            logger.info('Assistant ID가 없습니다. 새로 생성합니다.');
-            const newAssistantId = await createNewAssistant(chatbot);
-            chatbot.assistant_id = newAssistantId;
-            await chatbot.save();
+            logger.error('Assistant ID가 없습니다. 관리자에게 문의하세요.');
+            throw new Error('챗봇 설정이 올바르지 않습니다. 관리자에게 문의하세요.');
         }
-
+    
         chatResponse = await openaiService.chatWithAssistant(
             chatbot.assistant_id,
             message,
             currentSessionId,
             threadId
         );
-
+    
         // 새로운 스레드 ID 가져오기
         threadId = chatResponse.threadId;
     } catch (error) {
-        // Assistant ID 관련 오류면 새로 생성하고 다시 시도
-        if (
-            error.message.includes('Assistant ID') &&
-            error.message.includes('찾을 수 없습니다')
-        ) {
-            logger.warn(
-                `Assistant ID ${chatbot.assistant_id} 찾을 수 없음. 새로 생성합니다.`
-            );
-
-            try {
-                // 새 Assistant 생성
-                const newAssistantId = await createNewAssistant(chatbot);
-
-                // DB 업데이트
-                chatbot.assistant_id = newAssistantId;
-                await chatbot.save();
-
-                // 새 Assistant로 다시 시도
-                chatResponse = await openaiService.chatWithAssistant(
-                    newAssistantId,
-                    message,
-                    currentSessionId,
-                    threadId
-                );
-
-                threadId = chatResponse.threadId;
-            } catch (retryError) {
-                logger.error('새 Assistant 생성 및 재시도 실패:', retryError);
-                throw new Error(
-                    '챗봇 서비스 재구성에 실패했습니다. 나중에 다시 시도해주세요.'
-                );
-            }
+        // Assistant ID 관련 오류 발생 시 자동 재생성하지 않고 오류 메시지만 로깅
+        if (error.message.includes('Assistant ID') && 
+            error.message.includes('찾을 수 없습니다')) {
+            logger.error(`Assistant ID ${chatbot.assistant_id} 찾을 수 없음. 관리자 확인 필요.`);
+            throw new Error('챗봇 서비스를 일시적으로 사용할 수 없습니다. 관리자에게 문의하세요.');
         } else {
             logger.error('챗봇 대화 중 오류 발생:', error);
             throw error;
         }
-    }
-
-    async function createNewAssistant(chatbot) {
-        const store = await Store.findByPk(chatbot.store_id);
-        if (!store) {
-            throw new Error('연결된 점포 정보를 찾을 수 없습니다.');
-        }
-
-        const assistantInstructions = `
-            당신은 '${store.name}'의 챗봇 도우미입니다. 
-            고객들에게 친절하고 정확한 정보를 제공해주세요.
-            항상 공손하고 전문적인 태도를 유지하세요.
-            제공된 정보를 기반으로 질문에 답변하되, 모르는 내용에 대해서는 솔직하게 모른다고 말하세요.
-            
-            다음은 지식 베이스 내용입니다:
-            ${chatbot.knowledge_base || ''}
-        `;
-
-        const newAssistantId = await openaiService.createAssistant(
-            chatbot.name || `${store.name} 챗봇`,
-            assistantInstructions,
-            chatbot.model || 'gpt-4o-mini'
-        );
-
-        return newAssistantId;
     }
 
     // 대화 로그 저장

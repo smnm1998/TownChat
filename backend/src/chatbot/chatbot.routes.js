@@ -39,4 +39,7 @@ router.put('/:id', authenticate, chatbotController.updateChatbot);
 // 챗봇 삭제
 router.delete('/:id', authenticate, chatbotController.deleteChatbot);
 
+router.post('/:id/reset-assistant', authenticate, chatbotController.resetAssistantId);
+router.post('/:id/setup-assistant', authenticate, chatbotController.setupAssistantId);
+
 module.exports = router;
