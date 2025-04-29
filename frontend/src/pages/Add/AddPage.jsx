@@ -86,8 +86,8 @@ const AddPage = () => {
             return;
         }
         
-        // 다음 화면으로 이동 (스토어 추가 정보 입력 등)
-        navigate('/add/details', { 
+        // 다음 화면으로 이동하면서 선택한 지역 데이터 전달
+        navigate('/add/results', { 
             state: { 
                 province: selectedProvince,
                 city: selectedCity

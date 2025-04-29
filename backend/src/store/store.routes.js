@@ -48,6 +48,8 @@ router.post(
 // 모든 점포 목록 조회
 router.get('/', storeController.getAllStores);
 
+router.get('/region', storeController.getStoresByRegion);
+
 // 패턴 매칭 라우트를 나중에 배치
 // 특정 점포 상세 조회
 router.get('/:id', storeController.getStoreById);

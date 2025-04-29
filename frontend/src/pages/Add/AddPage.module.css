@@ -3,51 +3,36 @@
 }
 
 .content {
-    @apply flex-1 px-4 py-6 pb-24 flex flex-col;
+    @apply flex-1 px-6 pt-8 pb-24 flex flex-col; /* 패딩 조정 */
 }
 
 .title {
-    @apply text-2xl font-bold text-black mb-2;
+    @apply text-4xl font-bold text-black mb-1 text-left; /* 크기와 정렬 조정 */
 }
 
 .subtitle {
-    @apply text-base text-black mb-8;
-}
-
-.loading {
-    @apply flex justify-center items-center h-48 text-black;
-}
-
-.error {
-    @apply flex flex-col items-center justify-center h-48 text-red-700 bg-red-100 rounded-md p-4;
-}
-
-.retryButton {
-    @apply mt-4 px-4 py-2 bg-white text-black rounded-md;
-}
-
-.form {
-    @apply space-y-6;
+    @apply text-xl font-bold text-black mb-12; /* 마진 늘림 */
 }
 
 .formGroup {
-    @apply space-y-2;
+    @apply mb-6; /* 그룹 간격 늘림 */
 }
 
 .label {
-    @apply block text-sm font-medium text-black;
+    @apply block text-sm font-bold text-black mb-2; /* 폰트 굵게 변경 */
 }
 
 .selectWrapper {
-    @apply relative;
+    @apply relative mb-4; /* 아래 마진 추가 */
 }
 
 .select {
-    @apply w-full py-3 px-4 bg-yellow-100 border border-yellow-500 rounded-md text-black cursor-pointer;
+    @apply w-full py-4 px-4 bg-yellow-50 border border-yellow-300 rounded-md text-black cursor-pointer shadow-sm;
+    /* 배경색 밝게, 테두리 색상 조정, 그림자 추가, 패딩 키움 */
 }
 
 .select.disabled {
-    @apply bg-gray-200 text-gray-500 cursor-not-allowed;
+    @apply bg-gray-100 text-gray-500 cursor-not-allowed;
 }
 
 .picker {
@@ -63,15 +48,23 @@
 }
 
 .pickerItem {
-    @apply py-2 px-4 hover:bg-yellow-100 cursor-pointer;
+    @apply py-3 px-4 hover:bg-yellow-100 cursor-pointer; /* 패딩 키움 */
 }
 
 .selected {
     @apply bg-yellow-200 font-medium;
 }
 
+/* 다음으로 버튼 조정 */
 .nextButton {
-    @apply w-full py-3 bg-white text-black font-medium rounded-md mt-8;
+    @apply py-4 bg-white text-black font-bold rounded-full;
+    /* 버튼 둥글게, 폰트 굵게, 패딩 키움, 그림자 추가 */
+    position: fixed;
+    bottom: 100px; /* 하단바 위 여백 */
+    left: 4%; /* 좌측 여백 */
+    right: 4%; /* 우측 여백 */
+    width: 92%; /* 너비 조정 */
+    z-index: 10;
 }
 
 .nextButton:disabled {

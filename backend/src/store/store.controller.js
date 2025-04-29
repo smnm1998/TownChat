@@ -1,7 +1,12 @@
+const models = require('../models');
+const Store = models.Store;
+const User = models.User;
+const Province = models.Province;
+const City = models.City;
+const Op = models.Op;
 const storeService = require('./store.service');
 const { validateCreateStore, validateUpdateStore } = require('./store.validation');
 const { success, paginate } = require('../utils/response.utils');
-const { Store, Op } = require('../models');
 
 // 모든 점포 목록 조회
 const getAllStores = async (req, res, next) => {
@@ -102,6 +107,118 @@ const createStore = async (req, res, next) => {
     }
 };
 
+const getStoresByRegion = async (req, res, next) => {
+    try {
+        const { provinceId, cityId } = req.query;
+        
+        if (!provinceId) {
+            return res.status(400).json({
+                success: false,
+                message: '지역 정보가 필요합니다.'
+            });
+        }
+        
+        const whereClause = {};
+        
+        // 주소 필드에서 텍스트 검색을 통한 필터링
+        if (provinceId) {
+            try {
+                const province = await Province.findByPk(provinceId);
+                if (province) {
+                    // 풀네임 (예: "경상북도")
+                    const fullName = province.name;
+                    
+                    // 줄임말 매핑 (필요에 따라 추가)
+                    const shortNameMap = {
+                        '서울특별시': '서울',
+                        '부산광역시': '부산',
+                        '대구광역시': '대구',
+                        '인천광역시': '인천',
+                        '광주광역시': '광주',
+                        '대전광역시': '대전',
+                        '울산광역시': '울산',
+                        '경기도': '경기',
+                        '강원도': '강원',
+                        '충청북도': '충북',
+                        '충청남도': '충남',
+                        '전라북도': '전북',
+                        '전라남도': '전남',
+                        '경상북도': '경북',
+                        '경상남도': '경남',
+                        '제주특별자치도': '제주'
+                    };
+                    
+                    // 줄임말 (예: "경북")
+                    const shortName = shortNameMap[fullName] || '';
+                    
+                    // OR 조건으로 검색: 풀네임 또는 줄임말 포함
+                    whereClause.address = {
+                        [Op.or]: [
+                            { [Op.like]: `%${fullName}%` },
+                            { [Op.like]: `%${shortName}%` }
+                        ]
+                    };
+                    
+                    console.log(`검색 조건 추가: 주소에 ${fullName} 또는 ${shortName} 포함`);
+                }
+            } catch (error) {
+                console.error('Province 조회 오류:', error);
+            }
+        }
+        
+        if (cityId) {
+            try {
+                const city = await City.findByPk(cityId);
+                if (city) {
+                    // 이미 province로 필터링된 경우 추가 조건으로 설정
+                    const cityName = city.name;
+                    
+                    if (whereClause.address) {
+                        // 이미 address 조건이 있을 때 (province 조건이 있는 경우)
+                        const existingCondition = whereClause.address;
+                        
+                        // 기존 조건과 city 조건을 AND로 결합
+                        whereClause.address = {
+                            [Op.and]: [
+                                existingCondition,
+                                { [Op.like]: `%${cityName}%` }
+                            ]
+                        };
+                    } else {
+                        // address 조건이 없을 때 (province 조건이 없는 경우)
+                        whereClause.address = { [Op.like]: `%${cityName}%` };
+                    }
+                    
+                    console.log(`검색 조건 추가: 주소에 ${cityName} 포함`);
+                }
+            } catch (error) {
+                console.error('City 조회 오류:', error);
+            }
+        }
+        
+        whereClause.is_active = true;
+        console.log('검색 조건:', JSON.stringify(whereClause));
+        
+        // 검색 쿼리 실행
+        const { count, rows } = await Store.findAndCountAll({
+            where: whereClause,
+            limit: 20,
+            include: [{
+                model: User,
+                attributes: ['id', 'username', 'email']
+            }]
+        });
+        
+        return success(res, 200, '지역별 매장 조회 성공', {
+            total: count,
+            stores: rows
+        });
+    } catch (error) {
+        console.error('지역별 매장 조회 오류:', error);
+        next(error);
+    }
+};
+
 // 점포 정보 업데이트
 const updateStore = async (req, res, next) => {
     try {
@@ -188,5 +305,6 @@ module.exports = {
     updateStore,
     deleteStore,
     toggleStoreActive,
-    getStoreSuggestions
+    getStoreSuggestions,
+    getStoresByRegion
 };

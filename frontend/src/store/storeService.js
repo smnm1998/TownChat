@@ -1,6 +1,6 @@
 const BASE_URL = '/api';
 
-const getAuuthHeaders = () => {
+const getAuthHeaders = () => {
     const token = localStorage.getItem('accessToken');
     return token ? { 'Authorization' : `Bearer ${token}`} : {};
 };
@@ -9,7 +9,7 @@ const apiRequest = async (endpoint, options = {}) => {
     try {
         const headers = {
             'Content-Type': 'application/json',
-            ...getAuuthHeaders(),
+            ...getAuthHeaders(),
             ...options.headers
         };
 
@@ -87,6 +87,15 @@ const storeService = {
         if (params.limit) queryParams.append('limit', params.limit);
 
         return apiRequest(`/stores/nearby?${queryParams.toString()}`);
+    },
+
+    getStoresByRegion: async (provinceId, cityId) => {
+        let queryString = `?provinceId=${provinceId}`;
+        if (cityId) {
+            queryString += `&cityId=${cityId}`;
+        }
+        
+        return apiRequest(`/stores/region${queryString}`);
     },
 
     getSearchSuggestions: async (query) => {

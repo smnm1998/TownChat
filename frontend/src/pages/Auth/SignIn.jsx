@@ -59,16 +59,16 @@ const SignIn = () => {
                     if (userRole === 'admin') {
                         navigate('/admin/dashboard');
                     } else {
-                        navigate('/main');
+                        navigate('/');
                     }
                 } else {
                     // 사용자 정보 조회 실패 시 기본적으로 메인 페이지로
-                    navigate('/main');
+                    navigate('/');
                 }
             } catch (error) {
                 console.error('사용자 정보 조회 실패:', error);
                 // 오류 발생 시 기본적으로 메인 페이지로
-                navigate('/main');
+                navigate('/');
             }
         } catch (error) {
             setSignInError(error.message);

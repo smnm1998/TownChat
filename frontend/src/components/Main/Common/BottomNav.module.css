@@ -29,7 +29,12 @@
 }
 
 .addButton {
-    @apply flex items-center justify-center w-20 h-20 rounded-full bg-white border-4 border-yellow-600 shadow-lg;
+    @apply flex items-center justify-center w-20 h-20 rounded-full bg-white border-4 border-yellow-600 shadow-lg transition-all duration-300;
+}
+
+/* 추가: 활성화된 addButton 스타일 */
+.activeAddButton {
+    @apply bg-yellow-600;
 }
 
 .addIcon {

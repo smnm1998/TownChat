@@ -1,0 +1,22 @@
+.pageContainer {
+    @apply flex flex-col h-full; /* 전체 높이 사용, 세로 정렬 */
+}
+
+.title {
+    @apply text-xl font-bold text-gray-800;
+}
+
+.listContainer {
+    @apply flex-grow overflow-y-auto; /* 남은 공간 차지, 세로 스크롤 */
+}
+
+.loading,
+.error,
+.emptyMessage {
+    @apply p-6 text-center text-gray-500;
+}
+
+.error {
+    @apply text-red-600;
+}
+

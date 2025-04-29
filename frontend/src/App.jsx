@@ -5,7 +5,9 @@ import MainPage from '@pages/Main/MainPage';
 import SignIn from '@pages/Auth/SignIn';
 import SignUp from '@pages/Auth/SignUp';
 import ChatPage from '@pages/Chat/ChatPage';
-import AddPage from '@pages/Add/AddPage'; 
+import AddPage from '@pages/Add/AddPage';
+import AddResultsPage from '@pages/Add/AddResult'
+import ChatListPage from '@pages/ChatList/ChatListPage';
 import { ProfilePage, EditProfilePage } from '@pages/Profile'; // 프로필 관련 페이지들 가져오기
 
 // 관리자 페이지
@@ -60,7 +62,8 @@ function App() {
                 {/* BottomNav 컴포넌트에서 사용하는 경로 추가 */}
                 <Route path="/nearby" element={isAuthenticated ? <NotImplementedPage pageName="탐색하기" /> : <Navigate to="/signin" replace />} />
                 <Route path="/add" element={isAuthenticated ? <NotImplementedPage pageName="추가하기" /> : <Navigate to="/signin" replace />} />
-                <Route path="/chats" element={isAuthenticated ? <NotImplementedPage pageName="채팅목록" /> : <Navigate to="/signin" replace />} />
+                <Route path="/add/results" element={isAuthenticated ? <AddResultsPage /> : <Navigate to="/signin" replace />} />
+                <Route path="/chats" element={isAuthenticated ? <ChatListPage /> : <Navigate to="/signin" replace />} />
                 
                 {/* 프로필 관련 라우트 */}
                 <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/signin" replace />} />
