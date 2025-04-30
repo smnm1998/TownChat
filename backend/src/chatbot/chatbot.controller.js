@@ -109,7 +109,7 @@ const getChatbotByStoreId = async (req, res, next) => {
 const chatWithChatbot = async (req, res, next) => {
     try {
         const chatbotId = parseInt(req.params.id);
-        // sessionId와 thread_id도 body에서 받도록 수정
+        // sessionId와 threadId도 body에서 받도록 수정
         const { message, sessionId, threadId, location } = req.body; // <-- threadId 추가
 
         // 메시지 검증
@@ -121,7 +121,6 @@ const chatWithChatbot = async (req, res, next) => {
                 !location.latitude || !location.longitude ||
                 isNaN(parseFloat(location.latitude)) || isNaN(parseFloat(location.longitude))
             ) {
-                // Use ValidationError for consistency
                 throw new ValidationError('유효하지 않은 위치 정보입니다. 위도와 경도를 확인해주세요.');
             }
         }
@@ -140,10 +139,10 @@ const chatWithChatbot = async (req, res, next) => {
         };
 
         logger.debug(`[Controller] Calling chatWithChatbot service with options:`, chatOptions);
-        // console.log('요청 헤더:', req.headers); // Keep for debugging if needed
-        // console.log('인증된 사용자:', req.user); // Keep for debugging if needed
-        // console.log('ChatOptions에 전달할 userId:', chatOptions.userId); // Keep for debugging if needed
-        // console.log('ChatOptions에 전달할 threadId:', chatOptions.threadId); // Keep for debugging if needed
+        console.log('요청 옵션:', chatOptions);
+        console.log('- userId:', chatOptions.userId);
+        console.log('- sessionId:', chatOptions.sessionId);
+        console.log('- threadId:', chatOptions.threadId);
 
         // 서비스 호출
         const response = await chatbotService.chatWithChatbot(
@@ -151,6 +150,13 @@ const chatWithChatbot = async (req, res, next) => {
             message,
             chatOptions // 수정된 옵션 전달
         );
+
+        // 응답 로깅
+        console.log('챗봇 응답:', {
+            response: response.response ? response.response.substring(0, 50) + '...' : null,
+            sessionId: response.sessionId,
+            threadId: response.threadId
+        });
 
         // 성공 응답 (response 객체에 sessionId와 threadId 포함됨)
         return success(res, 200, '챗봇 응답 성공', response);

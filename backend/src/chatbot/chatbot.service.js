@@ -377,14 +377,14 @@ const getThreadIdBySessionId = async (sessionId) => {
 
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     // 옵션에서 필요한 값들 추출
-    const { userId = null, sessionId = null, thread_id = null, location = null } = options;
+    const { userId = null, sessionId = null, threadId = null, location = null } = options;
 
     // 디버깅 로그 추가
     console.log('[chatWithChatbot] 함수 호출:');
     console.log('- chatbotId:', chatbotId);
     console.log('- userId:', userId);
     console.log('- sessionId:', sessionId);
-    console.log('- thread_id:', thread_id); // 추가: 클라이언트에서 전달받은 thread_id
+    console.log('- threadId:', threadId); // 명시적으로 threadId 로그 추가
 
     // 챗봇 존재 여부 및 활성화 상태 확인
     const chatbot = await Chatbot.findByPk(chatbotId, {
@@ -416,17 +416,19 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         sessionId ||
         `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // 세션 ID로 기존 스레드 ID 조회 - 이미 thread_id가 제공되었다면 그것을 사용
-    let threadId = thread_id;
+    // 클라이언트에서 전달받은 thread_id를 우선적으로 사용
+    let currentThreadId = threadId;
     
     // thread_id가 없는 경우에만 세션에서 조회
-    if (!threadId) {
+    if (!currentThreadId) {
         try {
-            threadId = await getThreadIdBySessionId(currentSessionId);
-            console.log('[chatWithChatbot] 세션에서 조회된 스레드 ID:', threadId);
+            currentThreadId = await getThreadIdBySessionId(currentSessionId);
+            console.log('[chatWithChatbot] 세션에서 조회된 스레드 ID:', currentThreadId);
         } catch (error) {
             logger.error('스레드 ID 조회 실패:', error);
         }
+    } else {
+        console.log('[chatWithChatbot] 클라이언트에서 전달받은 스레드 ID 사용:', currentThreadId);
     }
 
     // OpenAI API를 통해 챗봇과 대화
@@ -442,12 +444,12 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             chatbot.assistant_id,
             message,
             currentSessionId,
-            threadId
+            currentThreadId
         );
     
         // 새로운 스레드 ID 가져오기
-        threadId = chatResponse.threadId;
-        console.log('[chatWithChatbot] 응답 후 스레드 ID:', threadId);
+        currentThreadId = chatResponse.threadId;
+        console.log('[chatWithChatbot] 응답 후 스레드 ID:', currentThreadId);
     } catch (error) {
         // Assistant ID 관련 오류 발생 시 자동 재생성하지 않고 오류 메시지만 로깅
         if (error.message.includes('Assistant ID') && 
@@ -473,7 +475,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
 
         // 데이터 타입 명시적 처리
         const cleanedUserId = userId !== undefined && userId !== null ? Number(userId) : null;
-        const cleanedThreadId = threadId ? String(threadId) : null;
+        const cleanedThreadId = currentThreadId ? String(currentThreadId) : null;
         const cleanedSessionId = String(currentSessionId);
         const cleanedChatbotId = Number(chatbotId);
         
@@ -530,7 +532,7 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
     return {
         response: chatResponse.response,
         sessionId: currentSessionId,
-        threadId: threadId  // 중요: 스레드 ID 반환
+        threadId: currentThreadId  // 중요: 스레드 ID 반환
     };
 };
 

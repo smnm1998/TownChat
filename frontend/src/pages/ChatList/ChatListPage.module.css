@@ -15,7 +15,7 @@
 }
 
 .storeItem {
-    @apply flex py-4 px-5 cursor-pointer hover:bg-gray-50 transition-colors;
+    @apply flex py-4 px-5 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100;
 }
 
 .storeImage {
@@ -34,8 +34,16 @@
     @apply text-base font-bold text-gray-800 mb-1;
 }
 
+.storeLastMessage {
+    @apply text-sm text-gray-600 line-clamp-2 mb-1;
+}
+
 .storeTime {
-    @apply text-sm text-gray-600 line-clamp-2;
+    @apply text-xs text-gray-500 flex justify-between items-center;
+}
+
+.activeIndicator {
+    @apply bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs;
 }
 
 .loading, .error, .empty {
