@@ -1,22 +1,55 @@
-.pageContainer {
-    @apply flex flex-col h-full; /* 전체 높이 사용, 세로 정렬 */
+.container {
+    @apply flex flex-col min-h-screen bg-white;
+}
+
+.content {
+    @apply flex-1 flex flex-col overflow-auto pb-20;
 }
 
 .title {
-    @apply text-xl font-bold text-gray-800;
+    @apply text-3xl font-bold py-4 px-5 bg-white sticky top-0;
 }
 
-.listContainer {
-    @apply flex-grow overflow-y-auto; /* 남은 공간 차지, 세로 스크롤 */
+.storeList {
+    @apply flex-1 flex flex-col;
 }
 
-.loading,
-.error,
-.emptyMessage {
-    @apply p-6 text-center text-gray-500;
+.storeItem {
+    @apply flex py-4 px-5 cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.storeImage {
+    @apply w-12 h-12 rounded-md overflow-hidden bg-gray-200 mr-4 flex-shrink-0;
+}
+
+.storeImage img {
+    @apply w-full h-full object-cover;
+}
+
+.storeInfo {
+    @apply flex-1 min-w-0;
+}
+
+.storeName {
+    @apply text-base font-bold text-gray-800 mb-1;
+}
+
+.storeTime {
+    @apply text-sm text-gray-600 line-clamp-2;
+}
+
+.loading, .error, .empty {
+    @apply flex items-center justify-center p-10 text-center;
+}
+
+.loading {
+    @apply text-gray-500;
 }
 
 .error {
-    @apply text-red-600;
+    @apply text-red-500;
 }
 
+.empty {
+    @apply text-gray-500;
+}

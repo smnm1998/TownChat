@@ -1,6 +1,8 @@
 const chatbotService = require('./chatbot.service');
 const { validateChatbotData, validateChatMessage } = require('./chatbot.validation');
+const { Chatbot, ChatLog, Store, User, sequelize, Op } = require('../models');
 const { success, paginate } = require('../utils/response.utils');
+const openaiService = require('../services/openai.service');
 
 // 챗봇 업데이트
 const createChatbot = async (req, res, next) => {
@@ -103,45 +105,59 @@ const getChatbotByStoreId = async (req, res, next) => {
     }
 };
 
-// 챗봇과 대화하기 컨트롤러
+// 챗봇과 대화하기 컨트롤러 수정
 const chatWithChatbot = async (req, res, next) => {
     try {
         const chatbotId = parseInt(req.params.id);
-        const { message, sessionId, location } = req.body;
-        
+        // sessionId와 thread_id도 body에서 받도록 수정
+        const { message, sessionId, threadId, location } = req.body; // <-- threadId 추가
+
         // 메시지 검증
         validateChatMessage({ chatbot_id: chatbotId, message });
-        
+
         // 위치 정보 검증 (제공된 경우)
-        if (location && (
-            !location.latitude || !location.longitude ||
-            isNaN(parseFloat(location.latitude)) || isNaN(parseFloat(location.longitude))
-        )) {
-            return res.status(400).json({
-                success: false,
-                message: '유효하지 않은 위치 정보입니다.'
-            });
+        if (location) {
+            if (
+                !location.latitude || !location.longitude ||
+                isNaN(parseFloat(location.latitude)) || isNaN(parseFloat(location.longitude))
+            ) {
+                // Use ValidationError for consistency
+                throw new ValidationError('유효하지 않은 위치 정보입니다. 위도와 경도를 확인해주세요.');
+            }
         }
-        
-        // 챗봇과 대화
+
+        // threadId 형식 검증 (제공된 경우) - OpenAI thread ID는 'thread_'로 시작
+        if (threadId && !/^thread_[a-zA-Z0-9]+$/.test(threadId)) {
+            throw new ValidationError('유효하지 않은 스레드 ID 형식입니다.');
+        }
+
+        // 챗봇과 대화하기 위한 옵션 구성
         const chatOptions = {
-            userId: req.user ? req.user.id : null,  // 로그인했으면 사용자 ID 전달
-            sessionId,
-            location
+            userId: req.user ? req.user.id : null, // 로그인 사용자 ID
+            sessionId: sessionId,                  // 세션 ID (기존 또는 신규)
+            threadId: threadId,                    // 스레드 ID (기존 대화 이어갈 때) <-- 추가
+            location: location                     // 위치 정보
         };
-        
+
+        logger.debug(`[Controller] Calling chatWithChatbot service with options:`, chatOptions);
+        // console.log('요청 헤더:', req.headers); // Keep for debugging if needed
+        // console.log('인증된 사용자:', req.user); // Keep for debugging if needed
+        // console.log('ChatOptions에 전달할 userId:', chatOptions.userId); // Keep for debugging if needed
+        // console.log('ChatOptions에 전달할 threadId:', chatOptions.threadId); // Keep for debugging if needed
+
+        // 서비스 호출
         const response = await chatbotService.chatWithChatbot(
             chatbotId,
             message,
-            chatOptions
+            chatOptions // 수정된 옵션 전달
         );
-        
-        console.log('요청 헤더:', req.headers);
-        console.log('인증된 사용자:', req.user);
-        console.log('ChatOptions에 전달할 userId:', req.user ? req.user.id : null);
+
+        // 성공 응답 (response 객체에 sessionId와 threadId 포함됨)
         return success(res, 200, '챗봇 응답 성공', response);
+
     } catch (error) {
-        next(error);
+        logger.error(`[Controller] chatWithChatbot Error: ${error.message}`, { stack: error.stack });
+        next(error); // 에러 핸들링 미들웨어로 전달
     }
 };
 
@@ -227,61 +243,63 @@ const getUserChatbotSessions = async (userId, chatbotId, options = {}) => {
     return { sessions, pagination };
 };
 
-const getUserChatSessions = async (userId, options = {}) => {
-    const { page = 1, limit = 10 } = options || {};
-    const offset = (page - 1) * limit;
-
-    // 고유한 세션 ID 및 최근 대화 시간 조회
-    const sessions = await ChatLog.findAll({
-        attributes: [
-            'session_id',
-            [sequelize.fn('MAX', sequelize.col('created_at')), 'last_chat'],
-            [sequelize.fn('COUNT', sequelize.col('id')), 'message_count'],
-            'chatbot_id',
-        ],
-        where: {
-            user_id: userId
-        },
-        group: ['session_id', 'chatbot_id'],
-        order: [[sequelize.literal('last_chat'), 'DESC']],
-        limit,
-        offset,
-        include: [
-            {
-                model: Chatbot,
-                attributes: ['id', 'name'],
-                include: [
-                    {
-                        model: Store,
-                        attributes: ['id', 'name'],
-                    },
-                ],
+const getUserChatSessions = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        
+        // 기본적인 쿼리로 대체
+        const chatLogs = await ChatLog.findAll({
+            where: {
+                user_id: userId
             },
-        ],
-    });
-
-    // 총 세션 수 조회
-    const countResult = await ChatLog.findAll({
-        attributes: [
-            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('session_id'))), 'session_count'],
-        ],
-        where: {
-            user_id: userId
-        },
-        raw: true,
-    });
-
-    const count = countResult[0]?.session_count || 0;
-    const totalPages = Math.ceil(count / limit);
-
-    const pagination = {
-        total: count,
-        totalPages,
-        currentPage: parseInt(page),
-        limit: parseInt(limit),
-    };
-
-    return { sessions, pagination };
+            include: [
+                {
+                    model: Chatbot,
+                    include: [
+                        {
+                            model: Store,
+                            attributes: ['id', 'name', 'image_url'],
+                        },
+                    ],
+                },
+            ],
+            order: [['created_at', 'DESC']],
+            limit: 50 // 최신 50개만 가져오기
+        });
+        
+        // 세션 ID별로 그룹화
+        const sessionMap = new Map();
+        chatLogs.forEach(log => {
+            if (!sessionMap.has(log.session_id)) {
+                sessionMap.set(log.session_id, {
+                    session_id: log.session_id,
+                    last_chat: log.created_at,
+                    message_count: 1,
+                    chatbot_id: log.chatbot_id,
+                    Chatbot: log.Chatbot
+                });
+            } else {
+                const session = sessionMap.get(log.session_id);
+                session.message_count += 1;
+                // 더 최신 메시지가 있으면 업데이트
+                if (new Date(log.created_at) > new Date(session.last_chat)) {
+                    session.last_chat = log.created_at;
+                }
+            }
+        });
+        
+        // Map 객체를 배열로 변환
+        const sessions = Array.from(sessionMap.values());
+        
+        // 최신 메시지 기준으로 정렬
+        sessions.sort((a, b) => new Date(b.last_chat) - new Date(a.last_chat));
+        
+        return success(res, 200, '채팅 세션 목록 조회 성공', sessions);
+    } catch (error) {
+        console.error('채팅 세션 목록 조회 에러:', error);
+        logger.error(`사용자 채팅 세션 목록 조회 실패: ${error.message}`);
+        next(error);
+    }
 };
 
 
