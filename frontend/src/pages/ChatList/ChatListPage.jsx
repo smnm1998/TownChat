@@ -13,7 +13,8 @@ const ChatListPage = () => {
         sessions,
         loading,
         error,
-        fetchSessions
+        fetchSessions,
+        debugSession
     } = useChatSessionStore();
 
     // 첫 렌더링 시 세션 목록 불러오기
@@ -29,11 +30,17 @@ const ChatListPage = () => {
             return;
         }
         
+        // 디버깅을 위해 선택한 세션 정보 로깅
         console.log('클릭한 챗봇 ID:', chatbotId);
         console.log('클릭한 세션 ID:', sessionId);
         console.log('클릭한 스레드 ID:', threadId);
         
-        // URL 구성 - thread_id도 함께 전달
+        // 세션 디버깅 함수 호출
+        if (sessionId) {
+            debugSession(sessionId);
+        }
+        
+        // URL 구성 - 채팅봇 ID를 사용한 경로로 이동
         let url = `/chat/${chatbotId}`;
         
         // 쿼리 파라미터 구성
@@ -72,41 +79,47 @@ const ChatListPage = () => {
                     </div>
                 ) : (
                     <div className={styles.storeList}>
-                        {sessions.map((session, index) => (
-                            <div 
-                                key={session.session_id || `session-${index}`} 
-                                className={styles.storeItem}
-                                onClick={() => handleStoreClick(
-                                    session.chatbot_id || session.Chatbot?.id,
-                                    session.session_id,
-                                    session.thread_id
-                                )}
-                            >
-                                <div className={styles.storeImage}>
-                                    <img 
-                                        src={session.Chatbot?.Store?.image_url || '/placeholder-store.jpg'} 
-                                        alt={session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
-                                        onError={(e) => {
-                                            e.target.src = '/placeholder-store.jpg';
-                                        }}
-                                    />
-                                </div>
-                                <div className={styles.storeInfo}>
-                                    <h3 className={styles.storeName}>
-                                        {session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
-                                    </h3>
-                                    <p className={styles.storeLastMessage}>
-                                        {session.lastMessage || '(대화 내용이 없습니다)'}
-                                    </p>
-                                    <div className={styles.storeTime}>
-                                        {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
-                                        {session.thread_id ? (
-                                            <span className={styles.activeIndicator}>연결됨</span>
-                                        ) : null}
+                        {sessions.map((session, index) => {
+                            // chatbot_id 확인 - 두 가지 경로에서 가져옴
+                            const chatbotId = session.chatbot_id || session.Chatbot?.id;
+                            
+                            return (
+                                <div 
+                                    key={session.session_id || `session-${index}`} 
+                                    className={styles.storeItem}
+                                    onClick={() => handleStoreClick(
+                                        chatbotId,
+                                        session.session_id,
+                                        session.thread_id
+                                    )}
+                                >
+                                    <div className={styles.storeImage}>
+                                        <img 
+                                            src={session.Chatbot?.Store?.image_url || '/placeholder-store.jpg'} 
+                                            alt={session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
+                                            onError={(e) => {
+                                                e.target.src = '/placeholder-store.jpg';
+                                            }}
+                                        />
+                                    </div>
+                                    <div className={styles.storeInfo}>
+                                        <h3 className={styles.storeName}>
+                                            {session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
+                                            {chatbotId && <span className={styles.chatbotId}> (챗봇 #{chatbotId})</span>}
+                                        </h3>
+                                        <p className={styles.storeLastMessage}>
+                                            {session.lastMessage || '(대화 내용이 없습니다)'}
+                                        </p>
+                                        <div className={styles.storeTime}>
+                                            {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
+                                            {session.thread_id ? (
+                                                <span className={styles.activeIndicator}>연결됨</span>
+                                            ) : null}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

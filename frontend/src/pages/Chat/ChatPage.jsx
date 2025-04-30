@@ -49,16 +49,27 @@ const ChatPage = () => {
 
     // URL 쿼리 파라미터에서 세션 ID와 스레드 ID 설정
     useEffect(() => {
+        // URL 쿼리 파라미터에서 세션 ID와 스레드 ID 추출
+        const queryParams = new URLSearchParams(location.search);
+        const querySessionId = queryParams.get('session');
+        const queryThreadId = queryParams.get('thread');
+        
+        // 디버깅 로그 추가
+        console.log('URL 쿼리 파라미터:');
+        console.log('- sessionId:', querySessionId);
+        console.log('- threadId:', queryThreadId);
+      
+        // 우선순위: URL 쿼리 파라미터 > 로컬스토리지
         if (querySessionId) {
-            console.log('URL에서 세션 ID 발견:', querySessionId);
-            setSessionId(querySessionId);
+          console.log('URL에서 세션 ID 설정:', querySessionId);
+          setSessionId(querySessionId);
         }
         
         if (queryThreadId) {
-            console.log('URL에서 스레드 ID 발견:', queryThreadId);
-            setThreadId(queryThreadId);
+          console.log('URL에서 스레드 ID 설정:', queryThreadId);
+          setThreadId(queryThreadId);
         }
-    }, [querySessionId, queryThreadId, setSessionId, setThreadId]);
+      }, [location.search, setSessionId, setThreadId]);
 
     // 사용자 정보 로드
     useEffect(() => {
@@ -100,40 +111,124 @@ const ChatPage = () => {
         }
     }, [id, querySessionId, user, setSessionId]);
 
+    const extractIdFromPath = (path) => {
+        // URL 경로가 "/store/{id}/chat" 형태인지 확인
+        const storePathMatch = path.match(/\/store\/(\d+)\/chat/);
+        if (storePathMatch) {
+            return { type: 'store', id: storePathMatch[1] };
+        }
+        
+        // URL 경로가 "/chat/{id}" 형태인지 확인
+        const chatPathMatch = path.match(/\/chat\/(\d+)/);
+        if (chatPathMatch) {
+            return { type: 'chatbot', id: chatPathMatch[1] };
+        }
+        
+        return { type: null, id: null };
+    };
+
     // 점포 및 챗봇 정보 로드
     useEffect(() => {
         const loadStoreAndChatbot = async () => {
             setChatbotId(null); // 기존 챗봇 ID 초기화
             
-            const result = await fetchStoreAndChatbot(id);
-            if (result) {
-                // 챗봇 ID 설정
-                setChatbotId(result.chatbot.id);
+            // 현재 URL 경로에서 ID 타입 및 값 추출
+            const { type, id: pathId } = extractIdFromPath(location.pathname);
+            console.log(`URL 경로 분석: ${location.pathname} -> 타입: ${type}, ID: ${pathId}`);
+            
+            if (!pathId) {
+                setError('유효하지 않은 접근입니다.');
+                return;
+            }
+            
+            try {
+                let result;
+                
+                if (type === 'store') {
+                    // 점포 ID인 경우: 점포 정보를 먼저 가져오고 연결된 챗봇 조회
+                    console.log(`점포 ID ${pathId}로 챗봇 조회 중...`);
+                    result = await fetchStoreAndChatbot(pathId);
+                } else if (type === 'chatbot') {
+                    // 챗봇 ID인 경우: 직접 챗봇 정보 조회
+                    console.log(`챗봇 ID ${pathId} 직접 사용`);
+                    
+                    // 챗봇 정보 직접 조회
+                    const chatbotResponse = await fetch(`/api/chatbots/${pathId}`, {
+                        headers: getAuthHeaders()
+                    });
+                    
+                    if (!chatbotResponse.ok) {
+                        throw new Error('챗봇 정보를 불러오는데 실패했습니다.');
+                    }
+                    
+                    const chatbotData = await chatbotResponse.json();
+                    setChatbotId(pathId);
+                    
+                    // 챗봇 데이터에 Store 정보가 포함되어 있음
+                    if (chatbotData.data && chatbotData.data.Store) {
+                        setStore(chatbotData.data.Store);
+                    }
+                    
+                    result = {
+                        chatbot: chatbotData.data,
+                        store: chatbotData.data.Store
+                    };
+                } else {
+                    throw new Error('유효하지 않은 URL 경로입니다.');
+                }
+                
+                if (result) {
+                    // 결과 로깅
+                    console.log('불러온 데이터:', result);
+                    console.log('- 챗봇 ID:', result.chatbot?.id);
+                    console.log('- 스토어 ID:', result.store?.id);
+                    
+                    // 챗봇 ID 설정
+                    setChatbotId(result.chatbot.id);
+                }
+            } catch (error) {
+                console.error('데이터 로딩 중 오류:', error);
+                setError(error.message);
             }
         };
         
         loadStoreAndChatbot();
-    }, [id, fetchStoreAndChatbot, setChatbotId]);
+    }, [location.pathname, fetchStoreAndChatbot, setChatbotId]);
 
     // 채팅 기록 로드 (세션 ID와 챗봇 ID가 모두 있는 경우에만)
     useEffect(() => {
-        if (!sessionId || !chatbotId) return;
+        if (!sessionId || !chatbotId) {
+          console.log('세션ID 또는 챗봇ID가 없어 채팅 기록을 로드할 수 없습니다.');
+          console.log('- sessionId:', sessionId);
+          console.log('- chatbotId:', chatbotId);
+          console.log('- threadId:', threadId);
+          return;
+        }
         
         const loadChatHistory = async () => {
-            const chatHistory = await fetchChatHistory({
-                chatbotId,
-                sessionId,
-                threadId
-            });
-            
-            // 채팅 기록이 없는 경우 인사말 표시
-            if (chatHistory.length === 0 && store) {
-                setGreetingMessage(store.greeting_message || '안녕하세요! 무엇을 도와드릴까요?');
-            }
+          console.log('채팅 기록 로드 시작:');
+          console.log('- chatbotId:', chatbotId);
+          console.log('- sessionId:', sessionId);
+          console.log('- threadId:', threadId);
+          
+          const chatHistory = await fetchChatHistory({
+            chatbotId,
+            sessionId,
+            threadId
+          });
+          
+          // 히스토리 로드 결과 로깅
+          console.log(`채팅 기록 로드 완료: ${chatHistory.length}개 메시지`);
+          
+          // 채팅 기록이 없는 경우 인사말 표시
+          if (chatHistory.length === 0 && store) {
+            console.log('대화 기록 없음, 인사말 표시');
+            setGreetingMessage(store.greeting_message || '안녕하세요! 무엇을 도와드릴까요?');
+          }
         };
         
         loadChatHistory();
-    }, [chatbotId, sessionId, threadId, fetchChatHistory, store, setGreetingMessage]);
+      }, [chatbotId, sessionId, threadId, fetchChatHistory, store, setGreetingMessage]);
 
     // 메시지 스크롤 자동 이동
     useEffect(() => {
