@@ -1,0 +1,26 @@
+/* src/components/Main/Map/MapView.module.css */
+.mapContainer {
+    @apply w-full h-full min-h-80 rounded-md overflow-hidden relative;
+    height: calc(100vh - 200px); /* 헤더와 하단 네비게이션바 고려한 높이 */
+}
+
+.loadingOverlay {
+    @apply absolute inset-0 bg-gray-100 flex items-center justify-center text-gray-600;
+}
+
+/* 모바일 환경에서 지도 높이 조정 */
+@media (max-width: 640px) {
+    .mapContainer {
+        height: calc(100vh - 180px);
+    }
+}
+
+/* 지도 내부 커스텀 스타일 (필요시 사용) */
+:global(.custom-overlay) {
+    @apply bg-white px-2 py-1 rounded shadow-md text-sm border border-gray-200;
+}
+
+/* 확대/축소 버튼 위치 조정 */
+:global(.map_zoom_buttons) {
+    margin-right: 10px !important;
+}
