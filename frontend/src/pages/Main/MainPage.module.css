@@ -1,0 +1,15 @@
+.container {
+    @apply flex flex-col min-h-screen bg-gray-50;
+}
+
+.content {
+    @apply flex-1 pb-20; /* 하단 네비게이션 바 높이만큼 패딩 추가 */
+}
+
+.locationMessage {
+    @apply mx-4 my-2 p-3 bg-blue-50 text-blue-700 rounded-md text-sm;
+}
+
+.locationWarning {
+    @apply mx-4 my-2 p-3 bg-yellow-50 text-yellow-700 rounded-md text-sm;
+}

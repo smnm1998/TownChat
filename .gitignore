@@ -24,6 +24,7 @@ ehthumbs.db
 # Backend specific (if any, add more)
 /backend/coverage/
 /backend/.nyc_output/
+/backend/public/uploads/
 
 # Frontend specific (if any, add more)
 /frontend/coverage/

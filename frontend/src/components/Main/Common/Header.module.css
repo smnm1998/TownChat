@@ -1,0 +1,20 @@
+.header {
+    @apply bg-white py-7 px-7 sticky top-0 z-10 shadow-sm;
+}
+
+.container {
+    @apply w-full px-4 mx-auto;
+    max-width: 100%;
+}
+
+.content {
+    @apply flex items-center justify-center;
+}
+
+.logoLink {
+    @apply flex items-center;
+}
+
+.logo {
+    @apply h-7;
+}

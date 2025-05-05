@@ -1,0 +1,77 @@
+/* AdminSignIn.module.css */
+.container {
+    @apply flex flex-col items-center justify-center min-h-screen;
+    padding: 0 500px;
+}
+
+.signInBox {
+    @apply w-full max-w-md p-4;
+}
+
+.logoSection {
+    @apply flex flex-col items-center mb-4;
+}
+
+.logo {
+    @apply h-7 mb-4;
+}
+
+.title {
+    @apply text-xl font-semibold text-gray-800 text-center mb-4;
+}
+
+.form {
+    @apply w-full flex flex-col;
+}
+
+.formGroup {
+    @apply mb-4;
+}
+
+.label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+}
+
+.input {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-md;
+}
+
+.input::placeholder {
+    @apply text-gray-400;
+}
+
+.fieldError {
+    @apply text-red-500 text-xs mt-1;
+}
+
+.errorMessage {
+    @apply bg-red-100 text-red-600 p-3 rounded-md mb-4 text-sm;
+}
+
+.signInButton {
+    @apply w-full py-3 rounded-md text-black font-medium transition-colors;
+    background-color: #FFC100;
+}
+
+.signInButton:hover {
+    background-color: #E6AF00;
+}
+
+.signInButton:disabled {
+    @apply opacity-70 cursor-not-allowed;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 1080px) {
+    .container {
+        @apply px-4;
+    }
+    
+    .signInBox {
+        @apply p-6;
+    }
+    
+    .logo {
+        @apply h-10;
+    }
+}

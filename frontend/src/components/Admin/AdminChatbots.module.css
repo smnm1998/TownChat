@@ -1,0 +1,141 @@
+.container {
+    @apply w-full max-w-7xl mx-auto;
+}
+
+.header {
+    @apply flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4;
+}
+
+.title {
+    @apply text-2xl font-bold text-gray-800;
+}
+
+.searchContainer {
+    @apply relative w-full md:w-80;
+}
+
+.searchIcon {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400;
+}
+
+.searchInput {
+    @apply w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-400 focus:border-transparent;
+}
+
+.emptyState {
+    @apply flex items-center justify-center h-64 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-500;
+}
+
+.chatbotGrid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.chatbotCard {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col gap-4;
+}
+
+.cardHeader {
+    @apply flex justify-between items-start;
+}
+
+.chatbotName {
+    @apply text-lg font-semibold text-gray-800;
+}
+
+.statusBadge {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.statusActive {
+    @apply bg-green-100 text-green-700;
+}
+
+.statusInactive {
+    @apply bg-gray-100 text-gray-600;
+}
+
+.storeInfo {
+    @apply border-b border-gray-100 pb-3;
+}
+
+.storeName {
+    @apply font-medium text-gray-700;
+}
+
+.storeAddress {
+    @apply text-sm text-gray-500 mt-1;
+}
+
+.dateInfo {
+    @apply text-xs text-gray-500 space-y-1;
+}
+
+.dateLabel {
+    @apply flex justify-between;
+}
+
+.dateLabel span {
+    @apply text-gray-700;
+}
+
+.actions {
+    @apply flex flex-col gap-2 mt-2;
+}
+
+.actionButton {
+    @apply flex items-center justify-center rounded-md py-2 px-4 text-sm font-medium transition-colors;
+}
+
+.toggleButton {
+    @apply mb-2;
+}
+
+.activateButton {
+    @apply bg-green-50 text-green-700 hover:bg-green-100;
+}
+
+.deactivateButton {
+    @apply bg-gray-50 text-gray-700 hover:bg-gray-100;
+}
+
+.editButton {
+    @apply bg-blue-50 text-blue-700 hover:bg-blue-100;
+}
+
+.deleteButton {
+    @apply bg-red-50 text-red-700 hover:bg-red-100;
+}
+
+.buttonIcon {
+    @apply mr-2;
+}
+
+.loadingContainer {
+    @apply flex flex-col items-center justify-center h-64 text-gray-500;
+}
+
+.loadingIcon {
+    @apply animate-spin text-2xl mb-2 text-yellow-500;
+}
+
+.errorContainer {
+    @apply flex flex-col items-center justify-center h-64 text-red-500;
+}
+
+.errorMessage {
+    @apply mb-4;
+}
+
+.retryButton {
+    @apply px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors;
+}
+
+@media (max-width: 768px) {
+    .chatbotGrid {
+        @apply grid-cols-1;
+    }
+
+    .searchContainer {
+        @apply w-full;
+    }
+}

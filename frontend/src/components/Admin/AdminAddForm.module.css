@@ -1,0 +1,135 @@
+.fileInput {
+    @apply hidden;
+}
+
+.fileUploadWrapper {
+    @apply flex flex-col space-y-2;
+}
+
+.fileUploadLabel {
+    @apply flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.fileInfo {
+    @apply flex justify-between items-center p-2 bg-gray-50 border border-gray-200 rounded;
+}
+
+.fileName {
+    @apply text-sm truncate;
+}
+
+.fileSize {
+    @apply text-xs text-gray-500 ml-2;
+}
+
+.container {
+    @apply w-full max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-sm;
+}
+
+.pageTitle {
+    @apply text-2xl font-bold text-gray-800 mb-6;
+}
+
+.form {
+    @apply space-y-6;
+}
+
+.formGrid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+.formGroup {
+    @apply flex flex-col;
+}
+
+.label {
+    @apply block text-sm font-medium text-gray-700 mb-2 flex items-center;
+}
+
+.input {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-md;
+}
+
+.input::placeholder {
+    @apply text-gray-400;
+}
+
+.inputDisabled {
+    @apply bg-gray-100 cursor-not-allowed;
+}
+
+.inputDisabled::placeholder {
+    @apply text-gray-500;
+}
+
+.textarea {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-md min-h-[120px];
+}
+
+.helpText {
+    @apply text-xs text-gray-500 mt-1;
+}
+
+.mt2 {
+    @apply mt-2;
+}
+
+.error {
+    @apply text-red-500 text-xs mt-1;
+}
+
+.fullWidthGroup {
+    @apply md:col-span-2;
+}
+
+.imageUploadWrapper {
+    @apply flex flex-col space-y-4;
+}
+
+.imageInput {
+    @apply hidden;
+}
+
+.imageUploadLabel {
+    @apply flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.uploadIcon {
+    @apply mr-2 text-gray-600;
+}
+
+.imagePreview {
+    @apply mt-4 max-w-xs rounded-md overflow-hidden shadow-sm;
+}
+
+.imagePreview img {
+    @apply w-full h-auto object-cover;
+}
+
+.addressGroup {
+    @apply relative;
+}
+
+.addressInputWrapper {
+    @apply flex items-center space-x-2;
+}
+
+.addressSearchButton {
+    @apply px-4 py-2.5 bg-gray-100 text-gray-800 rounded-md border border-gray-300 hover:bg-gray-200 transition-colors whitespace-nowrap;
+}
+
+.submitButtonWrapper {
+    @apply mt-8 flex justify-end space-x-4;
+}
+
+.cancelButton {
+    @apply px-6 py-3 bg-gray-100 text-gray-800 rounded-md font-medium hover:bg-gray-200 transition-colors;
+}
+
+.submitButton {
+    @apply px-6 py-3 bg-yellow-400 text-black rounded-md font-medium hover:bg-yellow-500 transition-colors;
+}
+
+.submitButton:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}

@@ -1,0 +1,23 @@
+.card {
+    @apply block bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 transition-transform hover:shadow-md hover:transform hover:scale-105;
+}
+
+.imageContainer {
+    @apply w-full h-36 overflow-hidden relative;
+}
+
+.image {
+    @apply w-full h-full object-cover;
+}
+
+.content {
+    @apply p-3;
+}
+
+.title {
+    @apply text-base font-medium text-gray-800 mb-1;
+}
+
+.address {
+    @apply text-xs text-gray-500;
+}

@@ -1,0 +1,64 @@
+.form {
+    @apply w-full flex flex-col;
+  }
+  
+  .formGroup {
+    @apply mb-4;
+  }
+  
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-md;
+  }
+  
+  .input::placeholder {
+    @apply text-gray-400;
+  }
+  
+  .errorText {
+    @apply text-red-500 text-xs mt-1;
+  }
+  
+  .checkboxGroup {
+    @apply flex items-center mb-2;
+  }
+  
+  .checkbox {
+    @apply h-4 w-4 text-yellow-500 border-gray-300 rounded focus:ring-yellow-500;
+  }
+  
+  .checkboxLabel {
+    @apply ml-2 text-sm text-gray-700;
+  }
+  
+  .signInLinkContainer {
+    @apply flex justify-center items-center text-sm my-4;
+  }
+  
+  .signInWrapper {
+    @apply flex items-center;
+  }
+  
+  .signInText {
+    @apply text-gray-600;
+  }
+  
+  .signInLink {
+    @apply ml-1 font-bold underline text-black;
+  }
+  
+  .signupButton {
+    @apply w-full py-3 rounded-md text-black font-medium transition-colors;
+    background-color: #FFC100;
+  }
+  
+  .signupButton:hover {
+    background-color: #E6AF00;
+  }
+  
+  .signupButton:disabled {
+    @apply opacity-70 cursor-not-allowed;
+  }
