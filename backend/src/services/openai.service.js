@@ -1,219 +1,178 @@
-// openai.service.js 파일 수정
-
 const OpenAI = require('openai');
-const logger = require('../utils/logger');
+const logger = require('../utils/logger'); // 실제 로거 경로로 수정 필요
 
-// OpenAI API 클라이언트 생성 함수
+// OpenAI API 클라이언트 생성 (변경 없음)
 const getOpenAIClient = () => {
     const apiKey = process.env.OPENAI_API_KEY;
-    
     if (!apiKey) {
+        logger.error('[OpenAI Service] OpenAI API 키가 설정되지 않았습니다.');
         throw new Error('OpenAI API 키가 설정되지 않았습니다. 환경 변수를 확인하세요.');
     }
-    
-    return new OpenAI({
-        apiKey: apiKey
-    });
+    return new OpenAI({ apiKey: apiKey });
 };
 
-/**
- * OpenAI Assistant API를 사용하여 챗봇과 대화합니다.
- */
-const chatWithAssistant = async (assistantId, message, sessionId, threadId = null) => {
-    try {
-        // OpenAI API 인스턴스 생성
-        const openai = getOpenAIClient();
-        
-        logger.debug(`[OpenAI Service] 챗봇 대화 시작: ${assistantId.substring(0, 10)}...`);
-        logger.debug(`- 메시지: ${message.substring(0, 30)}${message.length > 30 ? '...' : ''}`);
-        logger.debug(`- 스레드 ID: ${threadId || 'new'}`);
-        
-        // 스레드 생성 또는 기존 스레드 사용
-        let thread;
-        if (threadId) {
-            try {
-                thread = await openai.beta.threads.retrieve(threadId);
-                logger.debug(`[OpenAI Service] 기존 스레드 사용: ${threadId.substring(0, 10)}...`);
-            } catch (error) {
-                logger.error(`[OpenAI Service] 스레드 조회 실패 (${threadId}):`, error.message);
-                logger.debug(`[OpenAI Service] 새 스레드 생성 중...`);
-                thread = await openai.beta.threads.create();
-            }
-        } else {
-            logger.debug(`[OpenAI Service] 새 스레드 생성 중...`);
-            thread = await openai.beta.threads.create();
-        }
-        
-        // 사용자 메시지 추가
-        await openai.beta.threads.messages.create(thread.id, {
-            role: 'user',
-            content: message
-        });
-        
-        // 실행 생성
-        const run = await openai.beta.threads.runs.create(thread.id, {
-            assistant_id: assistantId
-        });
-        
-        // 실행 상태 확인 (최대 60초 대기)
-        let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-        
-        // 타임아웃 설정
-        const startTime = Date.now();
-        const TIMEOUT = 60000; // 60초
-        
-        while (runStatus.status !== 'completed' && runStatus.status !== 'failed') {
-            // 타임아웃 체크
-            if (Date.now() - startTime > TIMEOUT) {
-                logger.error(`[OpenAI Service] 실행 타임아웃: ${runStatus.status}`);
-                throw new Error('응답 생성 시간이 초과되었습니다.');
-            }
-            
-            // 1초 대기
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // 상태 업데이트
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-            logger.debug(`[OpenAI Service] 실행 상태: ${runStatus.status}`);
-            
-            // 실패 상태 확인
-            if (runStatus.status === 'failed') {
-                logger.error(`[OpenAI Service] 실행 실패:`, runStatus.last_error);
-                throw new Error(`OpenAI 응답 생성 실패: ${runStatus.last_error?.message || '알 수 없는 오류'}`);
-            }
-        }
-        
-        // 응답 메시지 조회
-        const messages = await openai.beta.threads.messages.list(thread.id);
-        
-        // 가장 최근 어시스턴트 메시지 찾기
-        const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
-        
-        if (assistantMessages.length === 0) {
-            logger.error(`[OpenAI Service] 어시스턴트 응답 없음`);
-            throw new Error('응답을 받지 못했습니다.');
-        }
-        
-        const latestMessage = assistantMessages[0];
-        
-        // 응답 텍스트 정제
-        let responseText = '';
-        
-        if (latestMessage.content && latestMessage.content.length > 0) {
-            // 응답 내용 기록
-            logger.debug(`[OpenAI Service] 원본 응답 타입:`, latestMessage.content[0].type);
-            
-            if (latestMessage.content[0].type === 'text') {
-                responseText = latestMessage.content[0].text.value;
-                
-                // 원본 응답 로깅 (일부만)
-                const originalResponsePreview = responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '');
-                logger.debug(`[OpenAI Service] 원본 응답 (일부): ${originalResponsePreview}`);
-                logger.debug(`[OpenAI Service] 원본 응답 길이: ${responseText.length}`);
-                
-                // 특수 마크업 패턴 확인 (예: [8:0 + 피오르틸러츠])
-                const specialMarkupMatch = responseText.match(/\[\d+:\d+\s*\+?\s*[^\]]*\]/g);
-                if (specialMarkupMatch) {
-                    logger.warn(`[OpenAI Service] 특수 마크업 패턴 발견:`, specialMarkupMatch);
-                    
-                    // 특수 마크업 제거
-                    responseText = responseText
-                        .replace(/\[\d+:\d+\s*\+?\s*[^\]]*\]/g, '') // [8:0 + 피오르틸러츠] 같은 패턴 제거
-                        .trim();
-                }
-                
-                // undefined 관련 패턴 확인 및 제거
-                const undefinedMatch = responseText.match(/undefined|\.undefined|\,undefined/g);
-                if (undefinedMatch) {
-                    logger.warn(`[OpenAI Service] undefined 패턴 발견:`, undefinedMatch);
-                    
-                    // undefined 패턴 제거
-                    responseText = responseText
-                        .replace(/undefined/g, '')  // 'undefined' 제거
-                        .replace(/\.\s*undefined/g, '.') // '.undefined' 제거
-                        .replace(/\,\s*undefined/g, ',') // ',undefined' 제거
-                        .replace(/\?\s*undefined/g, '?') // '?undefined' 제거
-                        .replace(/\!\s*undefined/g, '!') // '!undefined' 제거
-                        .replace(/\:\s*undefined/g, ':') // ':undefined' 제거
-                        .trim();
-                }
-                
-                // 응답 정제 후 로깅
-                logger.debug(`[OpenAI Service] 정제된 응답 (일부): ${responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '')}`);
-            } else {
-                logger.error(`[OpenAI Service] 지원되지 않는 응답 타입:`, latestMessage.content[0].type);
-                responseText = '죄송합니다. 응답 형식이 지원되지 않습니다.';
-            }
-        } else {
-            logger.error(`[OpenAI Service] 응답 내용 없음`);
-            responseText = '죄송합니다. 응답을 생성할 수 없습니다.';
-        }
-        
-        // 수정: responseData -> responseText로 변경
-        return {
-            response: responseText,
-            threadId: thread.id,
-            messageId: latestMessage.id
-        };
-    } catch (error) {
-        logger.error(`[OpenAI Service] 챗봇 대화 중 오류:`, error);
-        throw new Error(`챗봇 응답 생성 실패: ${error.message}`);
-    }
-};
-
-/**
- * OpenAI에 새 어시스턴트 생성
- */
 const createAssistant = async (name, instructions, model = 'gpt-4o-mini') => {
     try {
         const openai = getOpenAIClient();
-        
+        logger.info(`[OpenAI Service] 새 Assistant 생성 요청: 이름='${name}', 모델='${model}'`);
         const assistant = await openai.beta.assistants.create({
             name,
             instructions,
             model,
-            tools: [{ type: 'retrieval' }]
+            tools: [{ type: 'retrieval' }] // 기본 도구, 필요시 수정
         });
-        
+        logger.info(`[OpenAI Service] Assistant 생성 성공: ID=${assistant.id}`);
         return assistant.id;
     } catch (error) {
-        logger.error('OpenAI Assistant 생성 실패:', error);
-        throw new Error(`Assistant 생성 실패: ${error.message}`);
+        logger.error(`[OpenAI Service] Assistant 생성 실패: ${error.message}`, error);
+        throw new Error(`OpenAI Assistant 생성에 실패했습니다: ${error.message}`);
     }
 };
 
-/**
- * 기존 어시스턴트 업데이트
- */
+// 챗봇과 대화 (Assistant API 사용)
+const chatWithAssistant = async (assistantId, message, sessionId, threadId = null) => {
+    try {
+        const openai = getOpenAIClient();
+        logger.info(`[OpenAI Service] 대화 시작 - Assistant: ${assistantId.substring(0,10)}, Session: ${sessionId}, Thread: ${threadId || 'NEW'}`);
+
+        // 스레드 관리
+        let currentThread;
+        if (threadId) {
+            try {
+                currentThread = await openai.beta.threads.retrieve(threadId);
+            } catch (error) {
+                logger.warn(`[OpenAI Service] 스레드 (${threadId}) 조회 실패, 새 스레드 생성: ${error.message}`);
+                currentThread = await openai.beta.threads.create();
+            }
+        } else {
+            currentThread = await openai.beta.threads.create();
+        }
+        logger.debug(`[OpenAI Service] 사용 스레드 ID: ${currentThread.id}`);
+
+        // 메시지 추가 및 실행 생성
+        await openai.beta.threads.messages.create(currentThread.id, { role: 'user', content: message });
+        const run = await openai.beta.threads.runs.create(currentThread.id, { assistant_id: assistantId });
+        logger.debug(`[OpenAI Service] Run 생성됨: ${run.id}`);
+
+        // 실행 상태 폴링
+        let runStatus = await openai.beta.threads.runs.retrieve(currentThread.id, run.id);
+        const startTime = Date.now();
+        const TIMEOUT_MS = 60000; // 60초
+
+        while (['queued', 'in_progress', 'requires_action'].includes(runStatus.status)) {
+            if (Date.now() - startTime > TIMEOUT_MS) {
+                logger.error(`[OpenAI Service] Run 타임아웃 (ID: ${run.id}, 상태: ${runStatus.status})`);
+                try { await openai.beta.threads.runs.cancel(currentThread.id, run.id); }
+                catch (cancelError) { logger.error(`[OpenAI Service] Run 취소 실패: ${cancelError.message}`); }
+                throw new Error('응답 생성 시간이 초과되었습니다.');
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            runStatus = await openai.beta.threads.runs.retrieve(currentThread.id, run.id);
+            logger.debug(`[OpenAI Service] Run 상태 (ID: ${run.id}): ${runStatus.status}`);
+        }
+
+        if (runStatus.status === 'failed') {
+            const errorMsg = runStatus.last_error?.message || '알 수 없는 OpenAI 실행 오류';
+            logger.error(`[OpenAI Service] Run 실패 (ID: ${run.id}): ${errorMsg}`, runStatus.last_error);
+            throw new Error(`OpenAI 응답 생성 실패: ${errorMsg}`);
+        }
+        if (runStatus.status !== 'completed') {
+            logger.error(`[OpenAI Service] Run 완료되지 않음 (ID: ${run.id}, 상태: ${runStatus.status})`);
+            throw new Error(`OpenAI 응답을 받지 못했습니다 (상태: ${runStatus.status}).`);
+        }
+
+        // 응답 메시지 조회 및 텍스트 추출
+        const messagesResponse = await openai.beta.threads.messages.list(currentThread.id, { order: 'desc', limit: 5 });
+        const assistantMessages = messagesResponse.data.filter(msg => msg.role === 'assistant');
+
+        if (!assistantMessages.length || !assistantMessages[0].content || !assistantMessages[0].content.length) {
+            logger.warn(`[OpenAI Service] 어시스턴트 응답 메시지 없음 (Thread: ${currentThread.id})`);
+            return { response: '죄송합니다. 어시스턴트로부터 응답을 받지 못했습니다.', threadId: currentThread.id, messageId: null };
+        }
+
+        const latestAssistantMessageContent = assistantMessages[0].content;
+        logger.info('--- OpenAI 원본 응답 (latestAssistantMessage.content) ---');
+        logger.info(JSON.stringify(latestAssistantMessageContent, null, 2));
+
+        let responseText = '';
+        // OpenAI 응답 content 배열에서 모든 'text' 타입 값들을 결합
+        for (const contentItem of latestAssistantMessageContent) {
+            if (contentItem.type === 'text' && contentItem.text && typeof contentItem.text.value === 'string') {
+                responseText += contentItem.text.value + "\n"; // 여러 조각일 경우를 대비해 줄바꿈으로 연결
+            }
+        }
+        responseText = responseText.trim(); // 최종적으로 앞뒤 공백 및 불필요한 줄바꿈 제거
+
+        logger.info(`--- OpenAI 추출된 원본 responseText (정제 전): "${responseText}" ---`);
+
+        // 텍스트 정제
+        if (typeof responseText === 'string' && responseText.length > 0) {
+            // 1. 특정 내부 마커 제거 (필요한 경우 여기에 추가, 예: 주석 처리된 부분)
+            // responseText = responseText.replace(/\[SPECIFIC_MARKER_PATTERN_TO_REMOVE\]/gi, '').trim();
+
+            // 2. "undefined" 문자열 제거 (모든 경우의 "undefined" 제거)
+            const originalLength = responseText.length;
+            responseText = responseText.replace(/undefined/gi, '');
+            if (responseText.length !== originalLength) {
+                logger.warn(`[OpenAI 정제] "undefined" 문자열 제거됨.`);
+            }
+
+            // 3. 연속된 공백을 하나로, 그리고 최종 trim
+            responseText = responseText.replace(/\s\s+/g, ' ').trim();
+
+            logger.info(`[OpenAI 정제 후] responseText (일부): "${responseText.substring(0,100)}${responseText.length > 100 ? "..." : ""}"`);
+        } else {
+            logger.warn(`[OpenAI Service] 정제할 텍스트가 없거나 유효하지 않음.`);
+            responseText = responseText || '죄송합니다. 응답 내용을 처리할 수 없습니다.'; // responseText가 null/undefined/빈문자열인 경우 대체
+        }
+
+        return {
+            response: responseText,
+            threadId: currentThread.id,
+            messageId: assistantMessages[0].id
+        };
+
+    } catch (error) {
+        logger.error(`[OpenAI Service] 챗봇 대화 중 심각한 오류: ${error.message}`, { stack: error.stack, assistantId, sessionId, threadId });
+        // 클라이언트에게 전달될 에러 메시지는 더 일반적일 수 있음
+        throw new Error(`챗봇 서비스와 통신 중 문제가 발생했습니다. 관리자에게 문의하십시오.`);
+    }
+};
+
 const updateAssistant = async (assistantId, data) => {
     try {
         const openai = getOpenAIClient();
-        
-        await openai.beta.assistants.update(assistantId, {
-            name: data.name,
-            instructions: data.instructions,
-            model: data.model
-        });
-        
+        logger.info(`[OpenAI Service] Assistant 업데이트 요청: ID=${assistantId}`);
+        const updatePayload = {};
+        if (data.name) updatePayload.name = data.name;
+        if (data.instructions) updatePayload.instructions = data.instructions;
+        if (data.model) updatePayload.model = data.model;
+        // tools 등 다른 필드도 필요시 추가
+
+        if (Object.keys(updatePayload).length === 0) {
+            logger.warn(`[OpenAI Service] Assistant 업데이트할 내용 없음: ID=${assistantId}`);
+            return true;
+        }
+
+        await openai.beta.assistants.update(assistantId, updatePayload);
+        logger.info(`[OpenAI Service] Assistant 업데이트 성공: ID=${assistantId}`);
         return true;
     } catch (error) {
-        logger.error(`Assistant 업데이트 실패 (ID: ${assistantId}):`, error);
-        throw new Error(`Assistant 업데이트 실패: ${error.message}`);
+        logger.error(`[OpenAI Service] Assistant (ID: ${assistantId}) 업데이트 실패: ${error.message}`, error);
+        throw new Error(`OpenAI Assistant 업데이트에 실패했습니다: ${error.message}`);
     }
 };
 
-/**
- * 어시스턴트 삭제
- */
 const deleteAssistant = async (assistantId) => {
     try {
         const openai = getOpenAIClient();
-        
+        logger.info(`[OpenAI Service] Assistant 삭제 요청: ID=${assistantId}`);
         await openai.beta.assistants.del(assistantId);
+        logger.info(`[OpenAI Service] Assistant 삭제 성공: ID=${assistantId}`);
         return true;
     } catch (error) {
-        logger.error(`Assistant 삭제 실패 (ID: ${assistantId}):`, error);
-        throw new Error(`Assistant 삭제 실패: ${error.message}`);
+        logger.error(`[OpenAI Service] Assistant (ID: ${assistantId}) 삭제 실패: ${error.message}`, error);
+        throw new Error(`OpenAI Assistant 삭제에 실패했습니다: ${error.message}`);
     }
 };
 

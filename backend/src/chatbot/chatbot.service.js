@@ -376,201 +376,136 @@ const getThreadIdBySessionId = async (sessionId) => {
 };
 
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
-    // 옵션에서 필요한 값들 추출
     const { userId = null, sessionId = null, threadId = null, location = null } = options;
 
-    // 디버깅 로그 추가
-    console.log('[chatWithChatbot] 함수 호출:');
-    console.log('- chatbotId:', chatbotId);
-    console.log('- userId:', userId);
-    console.log('- sessionId:', sessionId);
-    console.log('- threadId:', threadId); // 명시적으로 threadId 로그 추가
+    const chatbot = await Chatbot.findByPk(chatbotId, { include: [{ model: Store, attributes:['name'] }] }); // 필요한 Store 속성만
+    if (!chatbot) throw new NotFoundError('챗봇을 찾을 수 없습니다.');
+    if (!chatbot.is_active) throw new AppError('현재 해당 챗봇은 비활성 상태입니다.', 403);
+    if (!chatbot.assistant_id) throw new AppError('챗봇 설정(Assistant ID)이 올바르지 않습니다. 관리자에게 문의하세요.', 500);
 
-    // 챗봇 존재 여부 및 활성화 상태 확인
-    const chatbot = await Chatbot.findByPk(chatbotId, {
-        include: [
-            {
-                model: Store,
-                attributes: ['id', 'name', 'description', 'owner_name'],
-            },
-        ],
-    });
+    // --- 세션 및 스레드 ID 관리 ---
+    const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    let currentThreadId = threadId; // 클라이언트가 제공한 threadId를 우선 사용
 
-    if (!chatbot) {
-        throw new NotFoundError('챗봇을 찾을 수 없습니다.');
-    }
-
-    if (!chatbot.is_active) {
-        throw new Error('현재 해당 챗봇은 비활성 상태입니다.');
-    }
-
-    // 챗봇 어시스턴트 ID 확인
-    if (!chatbot.assistant_id) {
-        throw new Error('챗봇 설정이 완료되지 않았습니다.');
-    }
-
-    logger.info(`Calling OpenAI with Assistant ID: ${chatbot.assistant_id}`);
-
-    // 새 세션 ID 생성 (제공되지 않은 경우)
-    const currentSessionId =
-        sessionId ||
-        `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-    // 클라이언트에서 전달받은 thread_id를 우선적으로 사용
-    let currentThreadId = threadId;
-    
-    // thread_id가 없는 경우에만 세션에서 조회
-    if (!currentThreadId) {
+    if (!currentThreadId && currentSessionId) { // threadId가 없고 sessionId가 있을 때만 DB에서 조회
         try {
-            currentThreadId = await getThreadIdBySessionId(currentSessionId);
-            console.log('[chatWithChatbot] 세션에서 조회된 스레드 ID:', currentThreadId);
+            const chatLogInSession = await ChatLog.findOne({
+                where: {
+                    session_id: currentSessionId,
+                    chatbot_id: chatbotId,
+                    thread_id: { [Op.not]: null },
+                },
+                order: [['timestamp', 'DESC']],
+            });
+            if (chatLogInSession) {
+                currentThreadId = chatLogInSession.thread_id;
+                // logger.info(`[Chatbot Service] DB에서 스레드 ID 조회: ${currentThreadId} (세션: ${currentSessionId})`);
+            }
         } catch (error) {
-            logger.error('스레드 ID 조회 실패:', error);
+            logger.error(`[Chatbot Service] DB에서 스레드 ID 조회 실패: ${error.message}`);
+            // 실패 시 currentThreadId는 null로 유지 (새 스레드 생성 유도)
         }
-    } else {
-        console.log('[chatWithChatbot] 클라이언트에서 전달받은 스레드 ID 사용:', currentThreadId);
     }
+    // if (currentThreadId) {
+    //     logger.info(`[Chatbot Service] 사용할 스레드 ID: ${currentThreadId}`);
+    // }
 
-    // OpenAI API를 통해 챗봇과 대화
-    let chatResponse;
+    // --- OpenAI 서비스 호출 ---
+    let chatResponseFromOpenAI;
     try {
-        // 챗봇 어시스턴트 ID 확인 - 없으면 오류 발생
-        if (!chatbot.assistant_id) {
-            logger.error('Assistant ID가 없습니다. 관리자에게 문의하세요.');
-            throw new Error('챗봇 설정이 올바르지 않습니다. 관리자에게 문의하세요.');
-        }
-    
-        chatResponse = await openaiService.chatWithAssistant(
+        chatResponseFromOpenAI = await openaiService.chatWithAssistant(
             chatbot.assistant_id,
             message,
-            currentSessionId,
-            currentThreadId
+            currentSessionId, // 로깅/추적용으로 OpenAI 서비스에 전달
+            currentThreadId   // 기존 스레드가 있으면 전달, 없으면 null 전달하여 새로 생성
         );
-    
-        // 새로운 스레드 ID 가져오기
-        currentThreadId = chatResponse.threadId;
-        console.log('[chatWithChatbot] 응답 후 스레드 ID:', currentThreadId);
-        
-        // 응답 정제 - 더 엄격한 처리
-        if (chatResponse && typeof chatResponse.response === 'string') {
-            // 1. undefined 관련 텍스트 제거 (단독 또는 다른 문자와 결합된 형태)
-            chatResponse.response = chatResponse.response
-                .replace(/undefined/g, '')  // 'undefined' 제거
-                .replace(/\.\s*undefined/g, '.') // '.undefined' 제거
-                .replace(/\,\s*undefined/g, ',') // ',undefined' 제거
-                .replace(/\?\s*undefined/g, '?') // '?undefined' 제거
-                .replace(/\!\s*undefined/g, '!') // '!undefined' 제거
-                .replace(/\:\s*undefined/g, ':') // ':undefined' 제거
-                .trim();
-            
-            // 2. 특수 마크업이나 포맷팅 코드 제거
-            chatResponse.response = chatResponse.response
-                .replace(/\[\d+:\d+\s*\+?\s*[^\]]*\]/g, '') // [8:0 + 피오르틸러츠] 같은 패턴 제거
-                .replace(/\[.*?\]/g, '') // 모든 대괄호 내용 제거
-                .trim();
-            
-            // 3. 연속된 공백, 새줄 정리
-            chatResponse.response = chatResponse.response
-                .replace(/\s+/g, ' ')  // 연속된 공백을 하나로
-                .replace(/\n\s*\n/g, '\n') // 빈 줄 제거
-                .trim();
-            
-            // 4. 응답이 비어있는 경우 기본 메시지 설정
-            if (!chatResponse.response) {
-                chatResponse.response = '죄송합니다. 응답을 생성하는 중 문제가 발생했습니다.';
+        // OpenAI 서비스에서 반환된 (새로운 또는 기존) 스레드 ID로 업데이트
+        currentThreadId = chatResponseFromOpenAI.threadId;
+        // logger.info(`[Chatbot Service] OpenAI 응답 후 스레드 ID: ${currentThreadId}`);
+
+        let refinedResponseText = chatResponseFromOpenAI.response;
+
+        // --- 서비스 레벨 최종 응답 정제 ---
+        if (typeof refinedResponseText === 'string') {
+            // 1. "undefined" 문자열 최종적이고 확실하게 제거 (대소문자 무관, 단어 경계)
+            refinedResponseText = refinedResponseText.replace(/\bundefined\b/gi, '');
+
+            // 2. 특정 불필요한 패턴이나 마크업 잔여물 제거 (필요시 여기에 구체적인 정규식 추가)
+            //    예시: 특정 종류의 대괄호쌍만 제거 (내용은 유지하거나, 내용까지 제거)
+            //    refinedResponseText = refinedResponseText.replace(/\[REMOVE_THIS_PATTERN\]/g, '');
+
+            // 3. 여러 개의 공백을 하나의 공백으로, 그리고 앞뒤 공백 최종 제거
+            refinedResponseText = refinedResponseText.replace(/\s\s+/g, ' ').trim();
+
+            // 4. 정제 후 응답이 완전히 비어버린 경우, 사용자에게 보여줄 기본 메시지 설정
+            if (!refinedResponseText) {
+                // logger.warn('[Chatbot Service] 정제 후 응답이 비어있어 기본 메시지로 대체합니다.');
+                refinedResponseText = '죄송합니다. 현재 답변을 드리기 어렵습니다. 다른 내용을 질문해주시겠어요?';
             }
         } else {
-            // 응답이 없는 경우 기본 메시지 설정
-            chatResponse = {
-                ...chatResponse,
-                response: '죄송합니다. 응답을 생성할 수 없습니다.',
-                threadId: currentThreadId,
-                sessionId: currentSessionId
-            };
+            // logger.error('[Chatbot Service] OpenAI로부터 유효하지 않은 응답 데이터 수신:', chatResponseFromOpenAI);
+            refinedResponseText = '죄송합니다. 응답을 처리하는 중 예기치 않은 문제가 발생했습니다.';
         }
-        
-        // 로깅을 통한 검증
-        console.log('[chatWithChatbot] 정제된 응답:', {
-            response: chatResponse.response.substring(0, 100) + (chatResponse.response.length > 100 ? '...' : ''),
-            length: chatResponse.response.length
-        });
-        
-    } catch (error) {
-        // Assistant ID 관련 오류 발생 시 자동 재생성하지 않고 오류 메시지만 로깅
-        if (error.message.includes('Assistant ID') && 
-            error.message.includes('찾을 수 없습니다')) {
-            logger.error(`Assistant ID ${chatbot.assistant_id} 찾을 수 없음. 관리자 확인 필요.`);
-            throw new Error('챗봇 서비스를 일시적으로 사용할 수 없습니다. 관리자에게 문의하세요.');
+        // 정제된 텍스트로 최종 응답 객체 업데이트
+        chatResponseFromOpenAI.response = refinedResponseText;
+        // logger.debug(`[Chatbot Service] 최종 정제 응답 (일부): ${refinedResponseText.substring(0,150)}${refinedResponseText.length > 150 ? "..." : ""}`);
+
+
+        let finalResponse = chatResponseFromOpenAI.response;
+
+        if (typeof finalResponse === 'string') {
+            const beforeLength = finalResponse.length;
+            finalResponse = finalResponse.replace(/undefined/gi, '').trim();
+            finalResponse = finalResponse.replace(/\s\s+/g, ' ').trim();
+            if (finalResponse.length !== beforeLength) {
+                logger.warn(`[Chatbot Service 최종 검열] "undefined" 또는 추가 공백 제거됨. 최종 응답: "${finalResponse.substring(0,50)}..."`);
+            }
+            if (!finalResponse) {
+                finalResponse = '죄송합니다. 답변을 준비하지 못했습니다.';
+                logger.warn(`[Chatbot Service 최종 검열] 응답이 비어 기본 메시지로 대체.`);
+            }
         } else {
-            logger.error('챗봇 대화 중 오류 발생:', error);
-            throw error;
-        }
-    }
-
-    // 대화 로그 저장 - thread_id 저장 확실히 하기
-    try {
-        // 위치 정보 처리
-        let locationPoint = null;
-        if (location && location.latitude && location.longitude) {
-            locationPoint = {
-                type: 'Point',
-                coordinates: [location.longitude, location.latitude],
-            };
+            logger.error('[Chatbot Service 최종 검열] 응답이 문자열이 아님:', finalResponse);
+            finalResponse = '오류: 응답 형식이 올바르지 않습니다.';
         }
 
-        // 데이터 타입 명시적 처리
-        const cleanedUserId = userId !== undefined && userId !== null ? Number(userId) : null;
-        const cleanedThreadId = currentThreadId ? String(currentThreadId) : null;
-        const cleanedSessionId = String(currentSessionId);
-        const cleanedChatbotId = Number(chatbotId);
-        
-        console.log('[chatWithChatbot] 저장할 대화 로그 데이터:');
-        console.log('- chatbot_id:', cleanedChatbotId);
-        console.log('- user_id:', cleanedUserId);
-        console.log('- session_id:', cleanedSessionId);
-        console.log('- thread_id:', cleanedThreadId);
-        console.log('- message:', message);
-        console.log('- response:', chatResponse.response);
-
-        const logData = {
-            chatbot_id: cleanedChatbotId,
-            user_id: cleanedUserId,
-            session_id: cleanedSessionId,
-            message: message,
-            response: chatResponse.response,
-            thread_id: cleanedThreadId,
-            timestamp: new Date(),
-            user_feedback: 'none',
-            user_location: locationPoint,
+        return {
+            response: finalResponse, // 여기서 finalResponse 사용
+            sessionId: currentSessionId,
+            threadId: currentThreadId,
         };
 
-        // ChatLog 모델에 저장
-        const savedLog = await ChatLog.create(logData);
-        
-        console.log('[chatWithChatbot] 저장된 로그 ID:', savedLog.id);
-        console.log('[chatWithChatbot] 저장된 user_id:', savedLog.user_id);
-        console.log('[chatWithChatbot] 저장된 thread_id:', savedLog.thread_id);
-        
-        // 저장 후 검증
-        if (savedLog.user_id !== cleanedUserId) {
-            logger.warn(`user_id 불일치 - 예상: ${cleanedUserId}, 실제: ${savedLog.user_id}`);
-        }
-        
-        if (savedLog.thread_id !== cleanedThreadId) {
-            logger.warn(`thread_id 불일치 - 예상: ${cleanedThreadId}, 실제: ${savedLog.thread_id}`);
-        }
     } catch (error) {
-        logger.error('대화 로그 저장 중 오류 발생:', error);
-        console.error('대화 로그 저장 오류 상세:', error);
-        
-        // 오류가 발생해도 사용자에게는 응답 전송 (로그 저장 실패를 사용자에게 알리지 않음)
-        logger.warn('로그 저장 실패했으나 사용자에게 응답은 전송합니다.');
+        // logger.error(`[Chatbot Service] OpenAI 서비스 호출 중 오류: ${error.message}`, error);
+        // 사용자에게 전달될 에러 메시지 (좀 더 일반적이고 친화적으로)
+        throw new AppError(`챗봇 응답을 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.`, 503); // 503 Service Unavailable
+    }
+
+    // --- 대화 로그 저장 ---
+    try {
+        const locationPoint = (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') ?
+            { type: 'Point', coordinates: [location.longitude, location.latitude] } : null;
+
+        await ChatLog.create({
+            chatbot_id: parseInt(chatbotId),
+            user_id: userId ? parseInt(userId) : null,
+            session_id: currentSessionId,
+            message: message,
+            response: chatResponseFromOpenAI.response, // 정제된 최종 응답 저장
+            thread_id: currentThreadId, // 최종 스레드 ID 저장
+            timestamp: new Date(),
+            user_location: locationPoint,
+        });
+        // logger.info(`[Chatbot Service] 대화 로그 저장됨: sessionId=${currentSessionId}, threadId=${currentThreadId}`);
+    } catch (dbError) {
+        // logger.error(`[Chatbot Service] 대화 로그 저장 실패: ${dbError.message}`, dbError);
+        // 로그 저장 실패는 사용자에게 직접적인 에러로 전달하지 않음 (필수 기능 아님)
     }
 
     return {
-        response: chatResponse.response,
+        response: chatResponseFromOpenAI.response,
         sessionId: currentSessionId,
-        threadId: currentThreadId  // 중요: 스레드 ID 반환
+        threadId: currentThreadId, // 클라이언트에 최종 (새로운 또는 기존) 스레드 ID 반환
     };
 };
 

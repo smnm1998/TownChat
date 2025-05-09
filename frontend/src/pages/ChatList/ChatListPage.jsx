@@ -13,8 +13,7 @@ const ChatListPage = () => {
         sessions,
         loading,
         error,
-        fetchSessions,
-        debugSession
+        fetchSessions
     } = useChatSessionStore();
 
     // 첫 렌더링 시 세션 목록 불러오기
@@ -23,23 +22,37 @@ const ChatListPage = () => {
         fetchSessions();
     }, [fetchSessions]);
 
+    // 날짜 형식화 함수
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        // 오늘인 경우 시간만 표시
+        if (diff < 24 * 60 * 60 * 1000 && 
+            date.getDate() === now.getDate() &&
+            date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear()) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // 일주일 이내인 경우 요일 표시
+        if (diff < 7 * 24 * 60 * 60 * 1000) {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            return `${days[date.getDay()]}요일`;
+        }
+        
+        // 그 외에는 날짜 표시
+        return date.toLocaleDateString();
+    };
+
     const handleStoreClick = (chatbotId, sessionId, threadId) => {
         // ID 유효성 검사 추가
         if (!chatbotId) {
-            console.error('유효한 챗봇 ID가 없습니다');
             alert('죄송합니다. 이 채팅방에 접근할 수 없습니다.');
             return;
-        }
-        
-        // 디버깅을 위해 선택한 세션 정보 로깅
-        console.log('[채팅목록] 클릭한 챗봇 ID:', chatbotId);
-        console.log('[채팅목록] 클릭한 세션 ID:', sessionId);
-        console.log('[채팅목록] 클릭한 스레드 ID:', threadId);
-        
-        // 세션 디버깅 함수 호출
-        if (sessionId) {
-            const sessionInfo = debugSession(sessionId);
-            console.log('[채팅목록] 세션 상세 정보:', sessionInfo);
         }
         
         // URL 구성 - 채팅봇 ID를 사용한 경로로 이동
@@ -55,7 +68,6 @@ const ChatListPage = () => {
         
         // 스레드 ID 추가 (존재하는 경우)
         if (threadId) {
-            console.log('[채팅목록] 스레드 ID 전달:', threadId);
             queryParams.append('thread', threadId);
         }
         
@@ -65,7 +77,6 @@ const ChatListPage = () => {
             url += `?${queryString}`;
         }
             
-        console.log('[채팅목록] 이동할 URL:', url);
         navigate(url);
     };
 
@@ -94,9 +105,6 @@ const ChatListPage = () => {
                             // chatbot_id 확인 - 두 가지 경로에서 가져옴
                             const chatbotId = session.chatbot_id || session.Chatbot?.id;
                             
-                            // 스레드 ID가 있는지 확인하고 있으면 표시
-                            const hasThread = !!session.thread_id;
-                            
                             return (
                                 <div 
                                     key={session.session_id || `session-${index}`} 
@@ -104,7 +112,7 @@ const ChatListPage = () => {
                                     onClick={() => handleStoreClick(
                                         chatbotId,
                                         session.session_id,
-                                        session.thread_id  // thread_id 명시적으로 전달
+                                        session.thread_id
                                     )}
                                 >
                                     <div className={styles.storeImage}>
@@ -125,19 +133,9 @@ const ChatListPage = () => {
                                         </p>
                                         <div className={styles.storeTime}>
                                             <span className={styles.timeText}>
-                                                {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
+                                                {formatDate(session.last_chat)}
                                             </span>
-                                            {hasThread && (
-                                                <span className={styles.activeIndicator} title={`스레드 ID: ${session.thread_id}`}>
-                                                    연결됨
-                                                </span>
-                                            )}
                                         </div>
-                                        {session.thread_id && (
-                                            <div className={styles.threadInfo}>
-                                                스레드 ID: {session.thread_id.substring(0, 10)}...
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             );
