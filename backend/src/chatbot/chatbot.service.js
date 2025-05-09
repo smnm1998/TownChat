@@ -450,6 +450,51 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         // 새로운 스레드 ID 가져오기
         currentThreadId = chatResponse.threadId;
         console.log('[chatWithChatbot] 응답 후 스레드 ID:', currentThreadId);
+        
+        // 응답 정제 - 더 엄격한 처리
+        if (chatResponse && typeof chatResponse.response === 'string') {
+            // 1. undefined 관련 텍스트 제거 (단독 또는 다른 문자와 결합된 형태)
+            chatResponse.response = chatResponse.response
+                .replace(/undefined/g, '')  // 'undefined' 제거
+                .replace(/\.\s*undefined/g, '.') // '.undefined' 제거
+                .replace(/\,\s*undefined/g, ',') // ',undefined' 제거
+                .replace(/\?\s*undefined/g, '?') // '?undefined' 제거
+                .replace(/\!\s*undefined/g, '!') // '!undefined' 제거
+                .replace(/\:\s*undefined/g, ':') // ':undefined' 제거
+                .trim();
+            
+            // 2. 특수 마크업이나 포맷팅 코드 제거
+            chatResponse.response = chatResponse.response
+                .replace(/\[\d+:\d+\s*\+?\s*[^\]]*\]/g, '') // [8:0 + 피오르틸러츠] 같은 패턴 제거
+                .replace(/\[.*?\]/g, '') // 모든 대괄호 내용 제거
+                .trim();
+            
+            // 3. 연속된 공백, 새줄 정리
+            chatResponse.response = chatResponse.response
+                .replace(/\s+/g, ' ')  // 연속된 공백을 하나로
+                .replace(/\n\s*\n/g, '\n') // 빈 줄 제거
+                .trim();
+            
+            // 4. 응답이 비어있는 경우 기본 메시지 설정
+            if (!chatResponse.response) {
+                chatResponse.response = '죄송합니다. 응답을 생성하는 중 문제가 발생했습니다.';
+            }
+        } else {
+            // 응답이 없는 경우 기본 메시지 설정
+            chatResponse = {
+                ...chatResponse,
+                response: '죄송합니다. 응답을 생성할 수 없습니다.',
+                threadId: currentThreadId,
+                sessionId: currentSessionId
+            };
+        }
+        
+        // 로깅을 통한 검증
+        console.log('[chatWithChatbot] 정제된 응답:', {
+            response: chatResponse.response.substring(0, 100) + (chatResponse.response.length > 100 ? '...' : ''),
+            length: chatResponse.response.length
+        });
+        
     } catch (error) {
         // Assistant ID 관련 오류 발생 시 자동 재생성하지 않고 오류 메시지만 로깅
         if (error.message.includes('Assistant ID') && 
@@ -498,13 +543,6 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             user_feedback: 'none',
             user_location: locationPoint,
         };
-
-        // 응답에서 undefined 제거
-        if (chatResponse && chatResponse.response) {
-            chatResponse.response = chatResponse.response
-                .replace(/undefined/g, '')
-                .trim();
-        }
 
         // ChatLog 모델에 저장
         const savedLog = await ChatLog.create(logData);
@@ -565,6 +603,31 @@ const getChatHistory = async (
             order: [['created_at', 'ASC']],
             limit,
             offset,
+            include: [
+                {
+                    model: Chatbot,
+                    attributes: ['id', 'name', 'store_id'],
+                    include: [
+                        {
+                            model: Store,
+                            attributes: ['id', 'name', 'image_url'],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        // 채팅 기록 데이터 강화
+        const enhancedChatlogs = rows.map(chatlog => {
+            const plainChatlog = chatlog.get({ plain: true });
+            
+            // 챗봇 및 점포 이미지 URL 추가
+            if (plainChatlog.Chatbot && plainChatlog.Chatbot.Store) {
+                plainChatlog.botProfileImage = plainChatlog.Chatbot.Store.image_url;
+                plainChatlog.storeName = plainChatlog.Chatbot.Store.name;
+            }
+            
+            return plainChatlog;
         });
 
         const totalPages = Math.ceil(count / limit);
@@ -575,7 +638,10 @@ const getChatHistory = async (
             limit: parseInt(limit),
         };
 
-        return { chatlogs: rows, pagination };
+        return { 
+            chatlogs: enhancedChatlogs,
+            pagination 
+        };
     } catch (error) {
         logger.error('대화 기록 조회 실패: ', error);
         throw new Error('대화 기록 조회 중 오류가 발생했습니다');

@@ -19,6 +19,7 @@ const ChatListPage = () => {
 
     // 첫 렌더링 시 세션 목록 불러오기
     useEffect(() => {
+        // 이전 세션들을 모두 초기화 후 새로 불러옴
         fetchSessions();
     }, [fetchSessions]);
 
@@ -31,13 +32,14 @@ const ChatListPage = () => {
         }
         
         // 디버깅을 위해 선택한 세션 정보 로깅
-        console.log('클릭한 챗봇 ID:', chatbotId);
-        console.log('클릭한 세션 ID:', sessionId);
-        console.log('클릭한 스레드 ID:', threadId);
+        console.log('[채팅목록] 클릭한 챗봇 ID:', chatbotId);
+        console.log('[채팅목록] 클릭한 세션 ID:', sessionId);
+        console.log('[채팅목록] 클릭한 스레드 ID:', threadId);
         
         // 세션 디버깅 함수 호출
         if (sessionId) {
-            debugSession(sessionId);
+            const sessionInfo = debugSession(sessionId);
+            console.log('[채팅목록] 세션 상세 정보:', sessionInfo);
         }
         
         // URL 구성 - 채팅봇 ID를 사용한 경로로 이동
@@ -45,8 +47,17 @@ const ChatListPage = () => {
         
         // 쿼리 파라미터 구성
         const queryParams = new URLSearchParams();
-        if (sessionId) queryParams.append('session', sessionId);
-        if (threadId) queryParams.append('thread', threadId);
+        
+        // 세션 ID 추가 (존재하는 경우)
+        if (sessionId) {
+            queryParams.append('session', sessionId);
+        }
+        
+        // 스레드 ID 추가 (존재하는 경우)
+        if (threadId) {
+            console.log('[채팅목록] 스레드 ID 전달:', threadId);
+            queryParams.append('thread', threadId);
+        }
         
         // 쿼리 파라미터가 있는 경우 URL에 추가
         const queryString = queryParams.toString();
@@ -54,7 +65,7 @@ const ChatListPage = () => {
             url += `?${queryString}`;
         }
             
-        console.log('이동할 URL:', url);
+        console.log('[채팅목록] 이동할 URL:', url);
         navigate(url);
     };
 
@@ -83,6 +94,9 @@ const ChatListPage = () => {
                             // chatbot_id 확인 - 두 가지 경로에서 가져옴
                             const chatbotId = session.chatbot_id || session.Chatbot?.id;
                             
+                            // 스레드 ID가 있는지 확인하고 있으면 표시
+                            const hasThread = !!session.thread_id;
+                            
                             return (
                                 <div 
                                     key={session.session_id || `session-${index}`} 
@@ -90,7 +104,7 @@ const ChatListPage = () => {
                                     onClick={() => handleStoreClick(
                                         chatbotId,
                                         session.session_id,
-                                        session.thread_id
+                                        session.thread_id  // thread_id 명시적으로 전달
                                     )}
                                 >
                                     <div className={styles.storeImage}>
@@ -105,17 +119,25 @@ const ChatListPage = () => {
                                     <div className={styles.storeInfo}>
                                         <h3 className={styles.storeName}>
                                             {session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
-                                            {chatbotId && <span className={styles.chatbotId}> (챗봇 #{chatbotId})</span>}
                                         </h3>
                                         <p className={styles.storeLastMessage}>
                                             {session.lastMessage || '(대화 내용이 없습니다)'}
                                         </p>
                                         <div className={styles.storeTime}>
-                                            {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
-                                            {session.thread_id ? (
-                                                <span className={styles.activeIndicator}>연결됨</span>
-                                            ) : null}
+                                            <span className={styles.timeText}>
+                                                {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
+                                            </span>
+                                            {hasThread && (
+                                                <span className={styles.activeIndicator} title={`스레드 ID: ${session.thread_id}`}>
+                                                    연결됨
+                                                </span>
+                                            )}
                                         </div>
+                                        {session.thread_id && (
+                                            <div className={styles.threadInfo}>
+                                                스레드 ID: {session.thread_id.substring(0, 10)}...
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

@@ -20,6 +20,7 @@ const useChatStore = create(
                 setSessionId: (sessionId) => set({ sessionId }),
                 setThreadId: (threadId) => set({ threadId }),
                 setChatbotId: (chatbotId) => set({ chatbotId }),
+                setError: (error) => set({ error }), // setError 함수 추가
 
                 //사용자 정보 조회
                 fetchUserInfo: async() => {
@@ -90,100 +91,120 @@ const useChatStore = create(
                 // 대화 기록 조회
                 fetchChatHistory: async(options = {}) => {
                     const { chatbotId, sessionId, threadId } = options.chatbotId
-                      ? options
-                      : get();
-                  
+                    ? options
+                    : get();
+                    
                     if (!chatbotId || !sessionId) {
-                      console.error('채팅 기록 로드 실패: 챗봇 ID 또는 세션 ID가 없음');
-                      console.error('- chatbotId:', chatbotId);
-                      console.error('- sessionId:', sessionId);
-                      console.error('- threadId:', threadId);
-                      return [];
+                    console.error('채팅 기록 로드 실패: 챗봇 ID 또는 세션 ID가 없음');
+                    console.error('- chatbotId:', chatbotId);
+                    console.error('- sessionId:', sessionId);
+                    console.error('- threadId:', threadId);
+                    return [];
                     }
-                  
+                    
                     set({ isLoading: true, error: null });
-                  
+                    
                     try {
-                      // threadID 있으면 로그 저장
-                      if (threadId) {
+                    // threadID 있으면 로그 저장
+                    if (threadId) {
                         console.log('채팅 기록 요청 시 스레드 ID 사용:', threadId);
-                      }
-                  
-                      // 로그인 시 인증 설정
-                      const headers = {};
-                      const token = localStorage.getItem('accessToken');
-                      if (token) {
+                    }
+                    
+                    // 로그인 시 인증 설정
+                    const headers = {};
+                    const token = localStorage.getItem('accessToken');
+                    if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
-                      }
-                  
-                      // 기록 요청
-                      console.log(`채팅 기록 요청 URL: /api/chatbots/${chatbotId}/history?sessionId=${sessionId}`);
-                  
-                      const historyResponse = await fetch(
+                    }
+                    
+                    // 기록 요청
+                    console.log(`채팅 기록 요청 URL: /api/chatbots/${chatbotId}/history?sessionId=${sessionId}`);
+                    
+                    const historyResponse = await fetch(
                         `/api/chatbots/${chatbotId}/history?sessionId=${sessionId}`,
                         { headers }
-                      );
-                  
-                      if (!historyResponse.ok) {
+                    );
+                    
+                    if (!historyResponse.ok) {
                         throw new Error('채팅 기록을 불러오는데 실패했습니다');
-                      }
-                  
-                      const historyData = await historyResponse.json();
-                      console.log('채팅 기록 응답:', historyData);
-                  
-                      if (historyData.data && Array.isArray(historyData.data)) {
+                    }
+                    
+                    const historyData = await historyResponse.json();
+                    console.log('채팅 기록 응답:', historyData);
+                    
+                    if (historyData.data && Array.isArray(historyData.data)) {
                         const formattedMessages = [];
-                  
+                    
                         // 스레드 ID 검색 (기존 스레드 없는 경우)
                         if (!get().threadId) {
-                          for (const entry of historyData.data) {
+                        for (const entry of historyData.data) {
                             if (entry.thread_id) {
-                              console.log('대화 기록에서 스레드 ID 발견:', entry.thread_id);
-                              set({ threadId: entry.thread_id });
-                              break;
+                            console.log('대화 기록에서 스레드 ID 발견:', entry.thread_id);
+                            set({ threadId: entry.thread_id });
+                            break;
                             }
-                          }
                         }
-                  
+                        }
+                    
                         historyData.data.forEach((entry) => {
-                          // user
-                          formattedMessages.push({
+                        // 이미지 URL 추출: 중첩 객체에서 image_url 가져오기
+                        let botImageUrl = null;
+                        let storeName = null;
+                
+                        // 서버가 반환한 중첩 구조에서 이미지 URL과 점포 이름 추출
+                        if (entry.Chatbot && entry.Chatbot.Store) {
+                            botImageUrl = entry.Chatbot.Store.image_url;
+                            storeName = entry.Chatbot.Store.name;
+                            console.log('채팅 기록에서 이미지 URL 발견:', botImageUrl);
+                        }
+                        
+                        // 디버깅 로그
+                        if (botImageUrl) {
+                            console.log(`[ChatStore] ${entry.id} 메시지의 이미지 URL: ${botImageUrl}`);
+                        } else {
+                            console.log(`[ChatStore] ${entry.id} 메시지의 이미지 URL이 없습니다.`);
+                        }
+                
+                        // user 메시지
+                        formattedMessages.push({
                             id: `user_${entry.id}`,
                             text: entry.message,
                             isUser: true,
                             timestamp: new Date(
-                              entry.timestamp || entry.created_at || Date.now()
+                            entry.timestamp || entry.created_at || Date.now()
                             ),
                             isHistoryMessage: true,
-                          });
-                  
-                          // chatbot
-                          formattedMessages.push({
+                        });
+                    
+                        // chatbot 메시지
+                        formattedMessages.push({
                             id: `bot_${entry.id}`,
                             text: entry.response,
                             isUser: false,
+                            // 이미지 URL 및 점포 이름 포함
+                            botProfileImage: botImageUrl,
+                            storeName: storeName,
                             timestamp: new Date(
-                              entry.timestamp || entry.created_at || Date.now()
+                            entry.timestamp || entry.created_at || Date.now()
                             ),
                             isHistoryMessage: true,
-                          });
                         });
-                  
+                        });
+                    
                         set({ messages: formattedMessages });
                         return formattedMessages;
-                      }
-                  
-                      // 대화 기록 없거나 로드 실패 시 빈 배열 반환
-                      return [];
-                    } catch (error) {
-                      console.error('대화 기록 로딩 중 오류:', error);
-                      set({ error: error.message });
-                      return [];
-                    } finally {
-                      set({ isLoading: false });
                     }
-                  },
-
+                    
+                    // 대화 기록 없거나 로드 실패 시 빈 배열 반환
+                    return [];
+                    } catch (error) {
+                    console.error('대화 기록 로딩 중 오류:', error);
+                    set({ error: error.message });
+                    return [];
+                    } finally {
+                    set({ isLoading: false });
+                    }
+                },
                 // 인사말 메시지
                 setGreetingMessage: (greeting) => {
                     const greetingMessage = {
@@ -203,6 +224,27 @@ const useChatStore = create(
                 
                     if (!message.trim() || get().isSending) return;
                 
+                    // 필수 파라미터 검증
+                    if (!chatbotId) {
+                        console.error('[chatStore] chatbotId가 없습니다');
+                        set({ error: '챗봇 ID가 없습니다' });
+                        return;
+                    }
+                    
+                    if (!sessionId) {
+                        console.error('[chatStore] sessionId가 없습니다');
+                        set({ error: '세션 ID가 없습니다' });
+                        return;
+                    }
+                    
+                    // 요청 파라미터 로깅
+                    console.log('[chatStore] 메시지 전송 요청:', {
+                        chatbotId,
+                        sessionId,
+                        threadId,
+                        messageLength: message.length
+                    });
+                
                     const userMessage = {
                         id: `user_${Date.now()}`,
                         text: message,
@@ -216,10 +258,6 @@ const useChatStore = create(
                     });
                 
                     try {
-                        if (!chatbotId) {
-                            throw new Error('챗봇 ID가 없습니다.');
-                        }
-                
                         // 위치 정보 가져오기
                         let location = null;
                         if (navigator.geolocation) {
@@ -248,7 +286,7 @@ const useChatStore = create(
                         const requestBody = {
                             message: message,
                             sessionId: sessionId,
-                            threadId: threadId,
+                            threadId: threadId || null,  // threadId가 없으면 null 전송
                             location: location
                         };
                 
@@ -272,15 +310,52 @@ const useChatStore = create(
                                 headers,
                                 body: JSON.stringify(requestBody),
                             });
+                
+                        // 응답 상태 확인 및 로깅
+                        console.log(`[chatStore] 서버 응답 상태: ${response.status}`);
                             
-                        // 수정된 부분: !response.ok로 변경해야 함
+                        // 중요: response body는 한 번만 읽을 수 있으므로, 
+                        // 응답 clone을 만들어 두 번 읽기
+                        const responseClone = response.clone();
+                            
                         if (!response.ok) {
-                            throw new Error('챗봇 응답 받아오기 실패');
+                            // 응답 텍스트 확인 시도
+                            let errorText = '';
+                            try {
+                                // 500 에러의 경우 서버 측에서 메시지를 제공할 수 있음
+                                const errorData = await responseClone.json();
+                                errorText = errorData.message || errorData.error || JSON.stringify(errorData);
+                            } catch (e) {
+                                // JSON 파싱 실패 시 텍스트로 읽기 시도
+                                try {
+                                    errorText = await response.text() || `상태 코드: ${response.status}`;
+                                } catch (e2) {
+                                    // 텍스트로도 읽기 실패 시
+                                    errorText = `서버 오류 (상태 코드: ${response.status})`;
+                                }
+                            }
+                            
+                            console.error(`[chatStore] 서버 오류 응답: ${errorText}`);
+                            throw new Error(`챗봇 응답 실패: ${errorText}`);
                         }
                 
-                        const responseData = await response.json();
-                        console.log('챗봇 응답 데이터: ', responseData);
+                        // 성공 응답 처리
+                        let responseData;
+                        try {
+                            responseData = await response.json();
+                            console.log('챗봇 응답 데이터: ', responseData);
+                        } catch (e) {
+                            console.error('응답 JSON 파싱 오류:', e);
+                            throw new Error('서버 응답을 처리할 수 없습니다');
+                        }
                 
+                        // responseData 구조 확인
+                        if (!responseData || !responseData.data) {
+                            console.error('응답 데이터 형식 오류:', responseData);
+                            throw new Error('서버 응답 형식이 올바르지 않습니다');
+                        }
+                
+                        // 세션 ID 업데이트
                         if (responseData.data.sessionId && !get().sessionId) {
                             set({ sessionId: responseData.data.sessionId });
                 
@@ -307,8 +382,8 @@ const useChatStore = create(
                         const botMessage = {
                             id: `bot_${Date.now()}`,
                             text: responseData.data.response
-                                .replace(/undefined/g, '') // 오타 수정: replcae -> replace
-                                .trim(),
+                                ? responseData.data.response.replace(/undefined/g, '').trim()
+                                : '죄송합니다, 응답을 생성할 수 없습니다.',
                             isUser: false,
                             timestamp: new Date(),
                         };
@@ -316,6 +391,7 @@ const useChatStore = create(
                         set(state => ({
                             messages: [...state.messages, botMessage],
                             isSending: false,
+                            error: null // 성공 시 이전 오류 메시지 초기화
                         }));
                 
                         return botMessage;

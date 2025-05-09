@@ -3,6 +3,8 @@ const { validateChatbotData, validateChatMessage } = require('./chatbot.validati
 const { Chatbot, ChatLog, Store, User, sequelize, Op } = require('../models');
 const { success, paginate } = require('../utils/response.utils');
 const openaiService = require('../services/openai.service');
+// 로거 추가
+const logger = console; // 임시 로거 대체 - 간단한 해결책
 
 // 챗봇 업데이트
 const createChatbot = async (req, res, next) => {

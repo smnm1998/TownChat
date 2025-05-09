@@ -1,6 +1,7 @@
 // src/pages/Nearby/NearbyPage.jsx
 import { useState, useEffect, useRef } from 'react';
-import { FiSearch, FiCrosshair, FiList, FiMap } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiCrosshair, FiList, FiMap, FiX, FiMessageSquare } from 'react-icons/fi';
 import Header from '@components/Main/Common/Header';
 import BottomNav from '@components/Main/Common/BottomNav';
 import MapView from '@components/Main/Map/MapView';
@@ -8,6 +9,7 @@ import StoreCard from '@components/Main/Store/StoreCard';
 import styles from './NearbyPage.module.css';
 
 const NearbyPage = () => {
+    const navigate = useNavigate();
     const [userLocation, setUserLocation] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('map'); // 'map' 또는 'list'
@@ -259,6 +261,11 @@ const NearbyPage = () => {
         }));
     };
 
+    // 점포 채팅 페이지로 이동
+    const goToStoreChat = (storeId) => {
+        navigate(`/store/${storeId}/chat`);
+    };
+
     return (
         <div className={styles.container}>
             <Header />
@@ -337,24 +344,6 @@ const NearbyPage = () => {
                                 onMarkerClick={handleMarkerClick}
                                 zoom={3}
                             />
-
-                            {/* 선택된 점포 정보 카드 */}
-                            {selectedStore && (
-                                <div className={styles.selectedStoreCard}>
-                                    <StoreCard
-                                        id={selectedStore.id}
-                                        name={selectedStore.title}
-                                        address={selectedStore.address}
-                                        imageUrl={selectedStore.imageUrl}
-                                    />
-                                    <button
-                                        className={styles.closeButton}
-                                        onClick={() => setSelectedStore(null)}
-                                    >
-                                        닫기
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     ) : (
                         // 목록 뷰
@@ -380,6 +369,44 @@ const NearbyPage = () => {
                     )}
                 </div>
             </main>
+
+            {/* 선택된 점포 정보 모달 (중앙에 표시) */}
+            {selectedStore && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent}>
+                        <button 
+                            className={styles.modalCloseButton}
+                            onClick={() => setSelectedStore(null)}
+                        >
+                            <FiX />
+                        </button>
+                        
+                        <div className={styles.modalImageContainer}>
+                            <img
+                                src={selectedStore.imageUrl || '/placeholder-store.jpg'}
+                                alt={selectedStore.title}
+                                className={styles.modalImage}
+                                onError={(e) => {
+                                    e.target.src = '/placeholder-store.jpg';
+                                }}
+                            />
+                        </div>
+                        
+                        <div className={styles.modalInfo}>
+                            <h3 className={styles.modalTitle}>{selectedStore.title}</h3>
+                            <p className={styles.modalAddress}>{selectedStore.address}</p>
+                            
+                            <button 
+                                className={styles.chatButton}
+                                onClick={() => goToStoreChat(selectedStore.id)}
+                            >
+                                <FiMessageSquare className={styles.chatIcon} />
+                                채팅하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <BottomNav />
         </div>

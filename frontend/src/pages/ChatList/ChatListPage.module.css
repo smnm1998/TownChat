@@ -39,11 +39,19 @@
 }
 
 .storeTime {
-    @apply text-xs text-gray-500 flex justify-between items-center;
+    @apply text-xs text-gray-500 flex justify-between items-center mb-1;
+}
+
+.timeText {
+    @apply text-gray-400;
 }
 
 .activeIndicator {
-    @apply bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs;
+    @apply bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs font-medium;
+}
+
+.threadInfo {
+    @apply text-xs text-blue-500 truncate font-mono;
 }
 
 .loading, .error, .empty {
