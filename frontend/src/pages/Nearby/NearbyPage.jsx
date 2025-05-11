@@ -263,7 +263,7 @@ const NearbyPage = () => {
 
     // 점포 채팅 페이지로 이동
     const goToStoreChat = (storeId) => {
-        navigate(`/store/${storeId}/chat`);
+        navigate(`/store/${storeId}/chat?newSession=true`);
     };
 
     return (

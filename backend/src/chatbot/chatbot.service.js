@@ -317,6 +317,7 @@ const getChatbotByStoreId = async (storeId) => {
                     'phone',
                     'description',
                     'owner_name',
+                    'image_url'
                 ],
             },
         ],
@@ -346,6 +347,7 @@ const getChatbotById = async (chatbotId) => {
                     'phone',
                     'description',
                     'owner_name',
+                    'image_url'
                 ],
             },
         ],
@@ -378,16 +380,20 @@ const getThreadIdBySessionId = async (sessionId) => {
 const chatWithChatbot = async (chatbotId, message, options = {}) => {
     const { userId = null, sessionId = null, threadId = null, location = null } = options;
 
-    const chatbot = await Chatbot.findByPk(chatbotId, { include: [{ model: Store, attributes:['name'] }] }); // 필요한 Store 속성만
+    // 1. 챗봇 존재 및 활성화 상태 확인
+    const chatbot = await Chatbot.findByPk(chatbotId, { 
+        include: [{ model: Store, attributes: ['name'] }] 
+    });
+    
     if (!chatbot) throw new NotFoundError('챗봇을 찾을 수 없습니다.');
-    if (!chatbot.is_active) throw new AppError('현재 해당 챗봇은 비활성 상태입니다.', 403);
-    if (!chatbot.assistant_id) throw new AppError('챗봇 설정(Assistant ID)이 올바르지 않습니다. 관리자에게 문의하세요.', 500);
+    if (!chatbot.is_active) throw new Error('현재 해당 챗봇은 비활성 상태입니다.');
+    if (!chatbot.assistant_id) throw new Error('챗봇 설정(Assistant ID)이 올바르지 않습니다. 관리자에게 문의하세요.');
 
-    // --- 세션 및 스레드 ID 관리 ---
+    // 2. 세션 및 스레드 ID 관리
     const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    let currentThreadId = threadId; // 클라이언트가 제공한 threadId를 우선 사용
+    let currentThreadId = threadId;
 
-    if (!currentThreadId && currentSessionId) { // threadId가 없고 sessionId가 있을 때만 DB에서 조회
+    if (!currentThreadId && currentSessionId) {
         try {
             const chatLogInSession = await ChatLog.findOne({
                 where: {
@@ -399,18 +405,14 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
             });
             if (chatLogInSession) {
                 currentThreadId = chatLogInSession.thread_id;
-                // logger.info(`[Chatbot Service] DB에서 스레드 ID 조회: ${currentThreadId} (세션: ${currentSessionId})`);
+                logger.info(`[Chatbot Service] DB에서 스레드 ID 조회: ${currentThreadId} (세션: ${currentSessionId})`);
             }
         } catch (error) {
             logger.error(`[Chatbot Service] DB에서 스레드 ID 조회 실패: ${error.message}`);
-            // 실패 시 currentThreadId는 null로 유지 (새 스레드 생성 유도)
         }
     }
-    // if (currentThreadId) {
-    //     logger.info(`[Chatbot Service] 사용할 스레드 ID: ${currentThreadId}`);
-    // }
 
-    // --- OpenAI 서비스 호출 ---
+    // 3. OpenAI 서비스 호출
     let chatResponseFromOpenAI;
     try {
         chatResponseFromOpenAI = await openaiService.chatWithAssistant(
@@ -425,24 +427,47 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         
         // 응답 텍스트 정제
         let responseText = chatResponseFromOpenAI.response || '';
+        responseText = responseText.replace(/undefined/gi, '').replace(/\s+/g, ' ').trim();
         
-        // 명시적으로 undefined 문자열과 그 변형을 제거 (대소문자 구분 없이)
-        responseText = responseText.replace(/undefined/gi, '');
-        
-        // 여러 개의 공백, 탭, 줄바꿈을 하나의 공백으로 치환
-        responseText = responseText.replace(/\s+/g, ' ');
-        
-        // 앞뒤 공백 제거
-        responseText = responseText.trim();
-        
-        // 빈 응답인 경우 기본 메시지 제공
         if (!responseText) {
             responseText = '죄송합니다. 현재 답변을 제공할 수 없습니다. 다른 질문을 해주세요.';
         }
         
-        // 최종 응답 저장
-        chatResponseFromOpenAI.response = responseText;
+        // 4. 채팅 로그 DB에 저장 (이 부분이 누락되어 있었음)
+        try {
+            // 사용자 위치 정보가 있으면 포인트 형식으로 변환
+            let locationPoint = null;
+            if (location && location.latitude && location.longitude) {
+                // Sequelize에서 Point 타입으로 저장
+                locationPoint = { 
+                    type: 'Point', 
+                    coordinates: [location.longitude, location.latitude]
+                };
+            }
+
+            // 채팅 로그 저장
+            await ChatLog.create({
+                chatbot_id: chatbotId,
+                user_id: userId,
+                session_id: currentSessionId,
+                message: message,
+                response: responseText,
+                thread_id: currentThreadId,
+                timestamp: new Date(),
+                user_location: locationPoint
+            });
+            
+            logger.info(`[Chatbot Service] 채팅 로그 저장 성공: 세션 ID ${currentSessionId}, 스레드 ID ${currentThreadId}`);
+        } catch (dbError) {
+            // 로그 저장 실패해도 응답은 정상 반환
+            logger.error(`[Chatbot Service] 채팅 로그 저장 실패: ${dbError.message}`, { 
+                stack: dbError.stack, 
+                chatbotId, 
+                sessionId: currentSessionId 
+            });
+        }
         
+        // 5. 응답 반환
         return {
             response: responseText,
             sessionId: currentSessionId,
