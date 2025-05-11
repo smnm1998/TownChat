@@ -603,6 +603,38 @@ const getUserChatSessions = async (userId, options = {}) => {
     return { sessions, pagination };
 };
 
+const deleteChatSession = async (userId, sessionId) => {
+    try {
+        // 세션 존재 여부 확인 및 권한 검증
+        const sessionExists = await ChatLog.findOne({
+            where: {
+                session_id: sessionId,
+                user_id: userId
+            }
+        });
+        
+        if (!sessionExists) {
+            // 세션이 존재하지 않거나 현재 사용자의 세션이 아님
+            throw new ForbiddenError('해당 채팅 세션을 찾을 수 없거나 삭제 권한이 없습니다.');
+        }
+        
+        // 세션 ID에 해당하는 모든 채팅 로그 삭제
+        const deleteResult = await ChatLog.destroy({
+            where: {
+                session_id: sessionId,
+                user_id: userId
+            }
+        });
+        
+        logger.info(`사용자 ${userId}의 세션 ${sessionId} 삭제 완료: ${deleteResult}개 메시지 삭제됨`);
+        
+        return deleteResult > 0;
+    } catch (error) {
+        logger.error(`채팅 세션 삭제 실패: ${error.message}`);
+        throw error;
+    }
+};
+
 module.exports = {
     createChatbot,
     updateChatbot,
@@ -615,4 +647,5 @@ module.exports = {
     getUserChatSessions,
     getAllChatbots,
     getThreadIdBySessionId,
+    deleteChatSession
 };

@@ -68,11 +68,17 @@ const ProfilePage = () => {
             // 로컬 스토리지 토큰 삭제
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userId');
 
-            // 로그인 페이지로 이동
-            navigate('/signin');
+            // 로그인 페이지로 이동 (replace: true로 변경)
+            navigate('/signin', { replace: true });
         } catch (error) {
             console.error('로그아웃 오류:', error);
+            // 오류가 발생해도 로그아웃 처리
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userId');
+            navigate('/signin', { replace: true });
         }
     };
 

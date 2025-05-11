@@ -437,6 +437,28 @@ const setupAssistantId = async (req, res, next) => {
     }
 };
 
+const deleteChatSession = async (req, res, next) => {
+    try {
+        const userId = req.user.id; // 인증된 사용자 ID
+        const { sessionId } = req.params; // URL에서 세션 ID 추출
+        
+        if (!sessionId) {
+            return res.status(400).json({
+                success: false,
+                message: '세션 ID가 필요합니다.'
+            });
+        }
+        
+        // 세션 삭제 서비스 함수 호출
+        const result = await chatbotService.deleteChatSession(userId, sessionId);
+        
+        return success(res, 200, '채팅 세션이 성공적으로 삭제되었습니다.', { deleted: result });
+    } catch (error) {
+        console.error('채팅 세션 삭제 오류:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     createChatbot,
     updateChatbot,
@@ -450,5 +472,6 @@ module.exports = {
     getAllChatbots,
     getUserChatbotSessions,
     resetAssistantId,
-    setupAssistantId
+    setupAssistantId,
+    deleteChatSession
 };

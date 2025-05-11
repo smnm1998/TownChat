@@ -1,3 +1,4 @@
+// frontend/src/store/chatSessionStore.js 수정
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
@@ -7,6 +8,7 @@ const useChatSessionStore = create(
         sessions: [],
         loading: false,
         error: null,
+        deleteLoading: false, // 삭제 로딩 상태 추가
 
         fetchSessions: async () => {
             try {
@@ -160,9 +162,51 @@ const useChatSessionStore = create(
             }
         },
 
-        // 세션 삭제 기능 (필요한 경우 추가)
+        // 세션 삭제 기능 구현
         deleteSession: async (sessionId) => {
-            // 구현 필요시 추가
+            // 사용자 확인
+            if (!window.confirm('이 채팅 내역을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                return false;
+            }
+            
+            try {
+                set({ deleteLoading: true });
+                
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    throw new Error('로그인이 필요합니다.');
+                }
+                
+                // 세션 삭제 API 호출
+                const response = await fetch(`/api/chatbots/sessions/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || '채팅 내역 삭제에 실패했습니다.');
+                }
+                
+                // 삭제 성공 시 상태에서 해당 세션 제거
+                const currentSessions = get().sessions;
+                const updatedSessions = currentSessions.filter(
+                    session => session.session_id !== sessionId
+                );
+                
+                set({ sessions: updatedSessions, deleteLoading: false });
+                return true;
+            } catch (err) {
+                console.error('[채팅세션스토어] 세션 삭제 에러: ', err);
+                set({
+                    error: err.message || '채팅 내역 삭제에 실패했습니다.',
+                    deleteLoading: false
+                });
+                return false;
+            }
         },
         
         // 디버깅을 위한 세션 조회 함수

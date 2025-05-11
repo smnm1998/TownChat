@@ -312,15 +312,38 @@ const ChatPage = () => {
         }
         
         const loadChatHistory = async () => {
-            const chatHistory = await fetchChatHistory({
-                chatbotId,
-                sessionId,
-                threadId
-            });
-            
-            // 채팅 기록이 없는 경우 인사말 표시
-            if (chatHistory.length === 0 && store) {
-                setGreetingMessage(store.greeting_message || '안녕하세요! 무엇을 도와드릴까요?');
+            try {
+                const chatHistory = await fetchChatHistory({
+                    chatbotId,
+                    sessionId,
+                    threadId
+                });
+                
+                // 채팅 기록이 있는지 확인 - 빈 배열인 경우에도 유효한 배열
+                const hasHistory = Array.isArray(chatHistory) && chatHistory.length > 0;
+                
+                // 채팅 기록이 없고 store 정보가 있는 경우에만 인사말 표시
+                if (!hasHistory && store) {
+                    // 로그 추가
+                    console.log('채팅 기록이 없어 인사말을 표시합니다.');
+                    
+                    // 인사말 메시지 추가
+                    setGreetingMessage(
+                        store.greeting_message || 
+                        `안녕하세요! ${store.name}입니다. 무엇을 도와드릴까요?`
+                    );
+                } else {
+                    console.log(`채팅 기록 로드 완료: ${hasHistory ? chatHistory.length : 0}개 메시지`);
+                }
+            } catch (error) {
+                console.error('채팅 기록 로드 중 오류:', error);
+                // 오류 발생 시에도 인사말은 표시
+                if (store) {
+                    setGreetingMessage(
+                        store.greeting_message || 
+                        `안녕하세요! ${store.name}입니다. 무엇을 도와드릴까요?`
+                    );
+                }
             }
         };
         

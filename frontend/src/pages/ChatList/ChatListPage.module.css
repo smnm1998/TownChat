@@ -15,7 +15,7 @@
 }
 
 .storeItem {
-    @apply flex py-4 px-5 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100;
+    @apply flex py-4 px-5 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100 relative;
 }
 
 .storeImage {
@@ -27,7 +27,7 @@
 }
 
 .storeInfo {
-    @apply flex-1 min-w-0;
+    @apply flex-1 min-w-0 pr-10; /* 오른쪽 여백 추가 - 삭제 버튼 공간 */
 }
 
 .storeName {
@@ -43,7 +43,11 @@
 }
 
 .timeText {
-    @apply text-gray-400;
+    @apply text-gray-400 flex items-center;
+}
+
+.timeIcon {
+    @apply mr-1 text-xs;
 }
 
 .activeIndicator {
@@ -54,18 +58,63 @@
     @apply text-xs text-blue-500 truncate font-mono;
 }
 
-.loading, .error, .empty {
-    @apply flex items-center justify-center p-10 text-center;
+/* 삭제 버튼 스타일 추가 */
+.deleteButton {
+    @apply absolute right-4 top-1/2 transform -translate-y-1/2 w-8 h-8 
+           flex items-center justify-center rounded-full bg-white 
+           border border-gray-200 hover:bg-red-50 hover:border-red-200 
+           hover:text-red-500 transition-all text-gray-400;
 }
 
+.deleteIcon {
+    @apply text-sm;
+}
+
+/* 로딩 상태 개선 */
 .loading {
-    @apply text-gray-500;
+    @apply flex flex-col items-center justify-center p-10 text-center;
 }
 
+.loadingSpinner {
+    @apply w-10 h-10 mb-4 rounded-full border-4 border-gray-200;
+    border-top-color: #FFC100; /* 노란색 로딩 스피너 */
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 에러 상태 */
 .error {
-    @apply text-red-500;
+    @apply flex flex-col items-center justify-center p-10 text-center text-red-500;
 }
 
+.retryButton {
+    @apply mt-4 py-2 px-4 bg-yellow-400 text-black rounded-md 
+           hover:bg-yellow-500 transition-colors;
+}
+
+/* 빈 상태 개선 */
 .empty {
-    @apply text-gray-500;
+    @apply flex flex-col items-center justify-center p-10 text-center text-gray-500;
+}
+
+.emptyIcon {
+    @apply text-4xl mb-4 text-gray-300;
+}
+
+.emptySubtext {
+    @apply text-sm text-gray-400 mt-2;
+}
+
+/* 반응형 대응 */
+@media (max-width: 640px) {
+    .storeImage {
+        @apply w-10 h-10;
+    }
+    
+    .title {
+        @apply text-2xl py-3;
+    }
 }

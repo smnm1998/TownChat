@@ -9,7 +9,9 @@ const AdminSidebar = () => {
     const handleSignOut = () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userId');
         localStorage.removeItem('isAdmin');
+        // replace: true 추가하여 뒤로가기로 관리자 페이지에 접근하지 못하게 함
         window.location.href = '/admin/signin';
     }
 
