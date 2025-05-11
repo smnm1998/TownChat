@@ -269,7 +269,7 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
                             placeholder="점포 전화번호"
                             {...register('phone', {
                                 pattern: {
-                                    value: /^[0-9]{2,3}-?[0-9]{3,4}-?[0-9]{4}$/,
+                                    value: /^(?:(010-\d{4}-\d{4})|(010\d{8})|(0\d{1,2}-\d{3,4}-\d{4})|(0\d{8,11}))$/,
                                     message: '올바른 전화번호 형식이 아닙니다.'
                                 }
                             })}
@@ -336,7 +336,7 @@ const AdminAddForm = ({ isEditMode = false, storeData = null, storeId = null }) 
                             placeholder="대표 전화번호"
                             {...register('owner_phone', {
                                 pattern: {
-                                    value: /^[0-9]{2,3}-?[0-9]{3,4}-?[0-9]{4}$/,
+                                    value: /^(?:(010-\d{4}-\d{4})|(010\d{8})|(0\d{1,2}-\d{3,4}-\d{4})|(0\d{8,11}))$/,
                                     message: '올바른 전화번호 형식이 아닙니다.'
                                 }
                             })}
