@@ -416,97 +416,42 @@ const chatWithChatbot = async (chatbotId, message, options = {}) => {
         chatResponseFromOpenAI = await openaiService.chatWithAssistant(
             chatbot.assistant_id,
             message,
-            currentSessionId, // 로깅/추적용으로 OpenAI 서비스에 전달
-            currentThreadId   // 기존 스레드가 있으면 전달, 없으면 null 전달하여 새로 생성
+            currentSessionId,
+            currentThreadId
         );
-        // OpenAI 서비스에서 반환된 (새로운 또는 기존) 스레드 ID로 업데이트
+        
+        // 스레드 ID 업데이트
         currentThreadId = chatResponseFromOpenAI.threadId;
-        // logger.info(`[Chatbot Service] OpenAI 응답 후 스레드 ID: ${currentThreadId}`);
-
-        let refinedResponseText = chatResponseFromOpenAI.response;
-
-        // --- 서비스 레벨 최종 응답 정제 ---
-        if (typeof refinedResponseText === 'string') {
-            // 1. "undefined" 문자열 최종적이고 확실하게 제거 (대소문자 무관, 단어 경계)
-            refinedResponseText = refinedResponseText.replace(/\bundefined\b/gi, '');
-
-            // 2. 특정 불필요한 패턴이나 마크업 잔여물 제거 (필요시 여기에 구체적인 정규식 추가)
-            //    예시: 특정 종류의 대괄호쌍만 제거 (내용은 유지하거나, 내용까지 제거)
-            //    refinedResponseText = refinedResponseText.replace(/\[REMOVE_THIS_PATTERN\]/g, '');
-
-            // 3. 여러 개의 공백을 하나의 공백으로, 그리고 앞뒤 공백 최종 제거
-            refinedResponseText = refinedResponseText.replace(/\s\s+/g, ' ').trim();
-
-            // 4. 정제 후 응답이 완전히 비어버린 경우, 사용자에게 보여줄 기본 메시지 설정
-            if (!refinedResponseText) {
-                // logger.warn('[Chatbot Service] 정제 후 응답이 비어있어 기본 메시지로 대체합니다.');
-                refinedResponseText = '죄송합니다. 현재 답변을 드리기 어렵습니다. 다른 내용을 질문해주시겠어요?';
-            }
-        } else {
-            // logger.error('[Chatbot Service] OpenAI로부터 유효하지 않은 응답 데이터 수신:', chatResponseFromOpenAI);
-            refinedResponseText = '죄송합니다. 응답을 처리하는 중 예기치 않은 문제가 발생했습니다.';
+        
+        // 응답 텍스트 정제
+        let responseText = chatResponseFromOpenAI.response || '';
+        
+        // 명시적으로 undefined 문자열과 그 변형을 제거 (대소문자 구분 없이)
+        responseText = responseText.replace(/undefined/gi, '');
+        
+        // 여러 개의 공백, 탭, 줄바꿈을 하나의 공백으로 치환
+        responseText = responseText.replace(/\s+/g, ' ');
+        
+        // 앞뒤 공백 제거
+        responseText = responseText.trim();
+        
+        // 빈 응답인 경우 기본 메시지 제공
+        if (!responseText) {
+            responseText = '죄송합니다. 현재 답변을 제공할 수 없습니다. 다른 질문을 해주세요.';
         }
-        // 정제된 텍스트로 최종 응답 객체 업데이트
-        chatResponseFromOpenAI.response = refinedResponseText;
-        // logger.debug(`[Chatbot Service] 최종 정제 응답 (일부): ${refinedResponseText.substring(0,150)}${refinedResponseText.length > 150 ? "..." : ""}`);
-
-
-        let finalResponse = chatResponseFromOpenAI.response;
-
-        if (typeof finalResponse === 'string') {
-            const beforeLength = finalResponse.length;
-            finalResponse = finalResponse.replace(/undefined/gi, '').trim();
-            finalResponse = finalResponse.replace(/\s\s+/g, ' ').trim();
-            if (finalResponse.length !== beforeLength) {
-                logger.warn(`[Chatbot Service 최종 검열] "undefined" 또는 추가 공백 제거됨. 최종 응답: "${finalResponse.substring(0,50)}..."`);
-            }
-            if (!finalResponse) {
-                finalResponse = '죄송합니다. 답변을 준비하지 못했습니다.';
-                logger.warn(`[Chatbot Service 최종 검열] 응답이 비어 기본 메시지로 대체.`);
-            }
-        } else {
-            logger.error('[Chatbot Service 최종 검열] 응답이 문자열이 아님:', finalResponse);
-            finalResponse = '오류: 응답 형식이 올바르지 않습니다.';
-        }
-
+        
+        // 최종 응답 저장
+        chatResponseFromOpenAI.response = responseText;
+        
         return {
-            response: finalResponse, // 여기서 finalResponse 사용
+            response: responseText,
             sessionId: currentSessionId,
-            threadId: currentThreadId,
+            threadId: currentThreadId
         };
-
     } catch (error) {
-        // logger.error(`[Chatbot Service] OpenAI 서비스 호출 중 오류: ${error.message}`, error);
-        // 사용자에게 전달될 에러 메시지 (좀 더 일반적이고 친화적으로)
-        throw new AppError(`챗봇 응답을 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.`, 503); // 503 Service Unavailable
+        logger.error(`[Chatbot Service] OpenAI 서비스 호출 중 오류: ${error.message}`, error);
+        throw new Error('챗봇 응답을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     }
-
-    // --- 대화 로그 저장 ---
-    try {
-        const locationPoint = (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') ?
-            { type: 'Point', coordinates: [location.longitude, location.latitude] } : null;
-
-        await ChatLog.create({
-            chatbot_id: parseInt(chatbotId),
-            user_id: userId ? parseInt(userId) : null,
-            session_id: currentSessionId,
-            message: message,
-            response: chatResponseFromOpenAI.response, // 정제된 최종 응답 저장
-            thread_id: currentThreadId, // 최종 스레드 ID 저장
-            timestamp: new Date(),
-            user_location: locationPoint,
-        });
-        // logger.info(`[Chatbot Service] 대화 로그 저장됨: sessionId=${currentSessionId}, threadId=${currentThreadId}`);
-    } catch (dbError) {
-        // logger.error(`[Chatbot Service] 대화 로그 저장 실패: ${dbError.message}`, dbError);
-        // 로그 저장 실패는 사용자에게 직접적인 에러로 전달하지 않음 (필수 기능 아님)
-    }
-
-    return {
-        response: chatResponseFromOpenAI.response,
-        sessionId: currentSessionId,
-        threadId: currentThreadId, // 클라이언트에 최종 (새로운 또는 기존) 스레드 ID 반환
-    };
 };
 
 // 대화 기록 조회 함수 수정

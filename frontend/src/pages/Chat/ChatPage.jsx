@@ -18,22 +18,35 @@ const MessageAvatar = ({ message, store }) => {
     // 봇 메시지인 경우에만 아바타 표시
     if (message.isUser) return null;
     
-    // 이미지 URL 결정
-    let imageUrl;
-    if (message.isHistoryMessage && message.botProfileImage) {
+    // 이미지 URL 결정 - 우선순위: 메시지의 이미지 > 스토어 이미지 > 기본 이미지
+    let imageUrl = '/placeholder-store.jpg';
+    
+    if (message.botProfileImage) {
         imageUrl = getImageUrl(message.botProfileImage);
-    } else if (store?.image_url) {
+    } else if (store && store.image_url) {
         imageUrl = getImageUrl(store.image_url);
-    } else {
-        imageUrl = `${window.location.origin}/placeholder-store.jpg`;
     }
+    
+    // ref 추가하여 이미지 로딩 상태 추적
+    const imgRef = useRef(null);
+    const [loaded, setLoaded] = useState(false);
+    
+    useEffect(() => {
+        // 이미지가 이미 캐시되었는지 확인
+        if (imgRef.current && imgRef.current.complete) {
+            setLoaded(true);
+        }
+    }, []);
     
     return (
         <div className={styles.botAvatar}>
+            {!loaded && <div className={styles.avatarPlaceholder}></div>}
             <img
+                ref={imgRef}
                 src={imageUrl}
                 alt={message.storeName || store?.name || '점포 이미지'}
-                className={styles.avatarImage}
+                className={`${styles.avatarImage} ${loaded ? '' : 'hidden'}`}
+                onLoad={() => setLoaded(true)}
                 onError={handleImageError}
             />
         </div>
@@ -43,7 +56,7 @@ const MessageAvatar = ({ message, store }) => {
 // 이미지 URL 처리 함수 - 컴포넌트 외부로 이동
 const getImageUrl = (imageUrl) => {
     if (!imageUrl) {
-        return `${window.location.origin}/placeholder-store.jpg`;
+        return '/placeholder-store.jpg'; // 상대 경로로 변경
     }
     
     // 이미지 URL이 http로 시작하는 경우 그대로 사용
@@ -51,13 +64,14 @@ const getImageUrl = (imageUrl) => {
         return imageUrl;
     }
     
+    // 슬래시로 시작하지 않는 경우 추가
     const pathWithLeadingSlash = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    return `${window.location.origin}${pathWithLeadingSlash}`;
+    return pathWithLeadingSlash; // 상대 경로로 변경 (window.location.origin 제거)
 };
 
 // 이미지 로드 오류 처리 함수 - 컴포넌트 외부로 이동
 const handleImageError = (e) => {
-    e.target.src = `${window.location.origin}/placeholder-store.jpg`;
+    e.target.src = '/placeholder-store.jpg'; // 상대 경로로 변경
     e.target.onerror = null; // 무한 루프 방지
 };
 
@@ -127,13 +141,24 @@ const ChatPage = () => {
 
     // 미리 이미지 로드 - 성능 개선
     useEffect(() => {
-        if (store?.image_url && !storeImageLoaded) {
+        // 스토어 이미지가 있을 때만 처리
+        if (store?.image_url) {
             const img = new Image();
-            img.onload = () => setStoreImageLoaded(true);
-            img.onerror = () => setStoreImageLoaded(false);
             img.src = getImageUrl(store.image_url);
+            
+            // 이미지 로드 이벤트 핸들러
+            img.onload = () => setStoreImageLoaded(true);
+            img.onerror = () => {
+                console.log("Store image failed to load:", store.image_url);
+                setStoreImageLoaded(false);
+            };
+            
+            // 이미 캐시에 있는 경우 (complete가 true)
+            if (img.complete) {
+                setStoreImageLoaded(true);
+            }
         }
-    }, [store, storeImageLoaded]);
+    }, [store]);
 
     // 컴포넌트 마운트 시 상태 초기화
     useEffect(() => {

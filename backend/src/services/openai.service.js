@@ -95,37 +95,32 @@ const chatWithAssistant = async (assistantId, message, sessionId, threadId = nul
         logger.info(JSON.stringify(latestAssistantMessageContent, null, 2));
 
         let responseText = '';
+        
         // OpenAI 응답 content 배열에서 모든 'text' 타입 값들을 결합
         for (const contentItem of latestAssistantMessageContent) {
             if (contentItem.type === 'text' && contentItem.text && typeof contentItem.text.value === 'string') {
-                responseText += contentItem.text.value + "\n"; // 여러 조각일 경우를 대비해 줄바꿈으로 연결
+                responseText += contentItem.text.value + "\n";
             }
         }
-        responseText = responseText.trim(); // 최종적으로 앞뒤 공백 및 불필요한 줄바꿈 제거
 
-        logger.info(`--- OpenAI 추출된 원본 responseText (정제 전): "${responseText}" ---`);
-
-        // 텍스트 정제
-        if (typeof responseText === 'string' && responseText.length > 0) {
-            // 1. 특정 내부 마커 제거 (필요한 경우 여기에 추가, 예: 주석 처리된 부분)
-            // responseText = responseText.replace(/\[SPECIFIC_MARKER_PATTERN_TO_REMOVE\]/gi, '').trim();
-
-            // 2. "undefined" 문자열 제거 (모든 경우의 "undefined" 제거)
-            const originalLength = responseText.length;
-            responseText = responseText.replace(/undefined/gi, '');
-            if (responseText.length !== originalLength) {
-                logger.warn(`[OpenAI 정제] "undefined" 문자열 제거됨.`);
-            }
-
-            // 3. 연속된 공백을 하나로, 그리고 최종 trim
-            responseText = responseText.replace(/\s\s+/g, ' ').trim();
-
-            logger.info(`[OpenAI 정제 후] responseText (일부): "${responseText.substring(0,100)}${responseText.length > 100 ? "..." : ""}"`);
-        } else {
-            logger.warn(`[OpenAI Service] 정제할 텍스트가 없거나 유효하지 않음.`);
-            responseText = responseText || '죄송합니다. 응답 내용을 처리할 수 없습니다.'; // responseText가 null/undefined/빈문자열인 경우 대체
+        // 1. undefined 문자열 완전 제거 (단어 경계 고려)
+        responseText = responseText.replace(/\bundefined\b/gi, '');
+        
+        // 2. 여러 공백 문자를 하나로 통합
+        responseText = responseText.replace(/\s+/g, ' ');
+        
+        // 3. 앞뒤 공백 제거
+        responseText = responseText.trim();
+        
+        // 4. 빈 응답 체크
+        if (!responseText) {
+            logger.warn('[OpenAI Service] 텍스트 응답이 비어있음, 기본 메시지 사용');
+            responseText = '죄송합니다. 응답을 생성할 수 없습니다. 다른 질문을 시도해 보세요.';
         }
 
+        // 로깅
+        logger.info(`[OpenAI Service] 정제된 응답 (일부): "${responseText.substring(0, 100)}${responseText.length > 100 ? '...' : ''}"`);
+        
         return {
             response: responseText,
             threadId: currentThread.id,
