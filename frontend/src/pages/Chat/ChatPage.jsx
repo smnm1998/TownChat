@@ -96,22 +96,36 @@ const ChatPage = () => {
 
     // Effect 1: 경로 변경 감지, 상태 초기화, 사용자 정보 로드, URL 쿼리 파라미터로 세션/스레드 ID 설정
     useEffect(() => {
-        // console.log(`[ChatPage] Effect 1 (Init & User & Query Params): routeId=${routeIdFromParams}, prevRouteId=${prevRouteIdRef.current}`);
         if (prevRouteIdRef.current !== routeIdFromParams) {
-            // console.log(`[ChatPage] Effect 1: Route ID changed. Calling reset().`);
-            reset(); // 이전 채팅 관련 상태 (messages, store, chatbotId, sessionId, threadId 등) 완전 초기화
+            // 경로가 변경되면 상태 초기화
+            reset();
         }
         prevRouteIdRef.current = routeIdFromParams;
 
-        fetchUserInfo(); // 사용자 정보 로드
+        fetchUserInfo();
 
         const params = new URLSearchParams(location.search);
+        const newSessionRequested = params.get('newSession') === 'true';
         const qSessionId = params.get('session');
         const qThreadId = params.get('thread');
-        if (qSessionId && qSessionId !== sessionId) setSessionId(qSessionId); // 스토어와 다를 때만 업데이트
-        if (qThreadId && qThreadId !== threadId) setThreadId(qThreadId);     // 스토어와 다를 때만 업데이트
-
-    }, [routeIdFromParams, location.search, fetchUserInfo, reset, setSessionId, setThreadId, sessionId, threadId]);
+        
+        // 새 세션 요청이 있거나, ChatListPage에서 온 것이 아니면 세션 초기화
+        if (newSessionRequested) {
+            console.log('[ChatPage] 새 세션 요청됨 - 세션 초기화');
+            setSessionId(null);
+            setThreadId(null);
+        } else if (qSessionId) {
+            // 특정 세션 ID가 제공된 경우 (ChatListPage에서 온 경우)
+            console.log(`[ChatPage] 기존 세션 요청됨 - 세션 ID: ${qSessionId}`);
+            setSessionId(qSessionId);
+            if (qThreadId) setThreadId(qThreadId);
+        } else {
+            // 명시적인 파라미터가 없는 경우, 기본적으로 새 세션으로 간주
+            console.log('[ChatPage] 파라미터 없음 - 기본 새 세션으로 간주');
+            setSessionId(null);
+            setThreadId(null);
+        }
+    }, [routeIdFromParams, location.search, fetchUserInfo, reset, setSessionId, setThreadId]);
 
 
     // Effect 2: 점포 및 챗봇 정보 로드 (routeIdFromParams가 유효할 때)
@@ -162,23 +176,20 @@ const ChatPage = () => {
 
     // Effect 3: 세션 ID 생성/로드 (사용자 정보, 챗봇 ID, 로컬스토어의 점포 정보가 준비된 후)
     useEffect(() => {
-        // console.log(`[ChatPage] Effect 3 (Session ID Setup): routeId=${routeIdFromParams}, userReady=${!!user}, chatbotIdReady=${!!chatbotId}`);
-        // URL 쿼리에 이미 sessionId가 있으면 그걸 사용 (Effect 1에서 처리)
-        if (location.search.includes('session=')) return;
-
-        if (routeIdFromParams && user && chatbotId) { // 모든 조건 만족 시
-            const entityId = routeIdFromParams; // 현재 페이지의 주 ID
+        // sessionId가 이미 설정되어 있으면 새로 생성하지 않음
+        if (sessionId) return;
+        
+        if (routeIdFromParams && user && chatbotId) {
+            const entityId = routeIdFromParams;
             const pfx = user.id ? `user_${user.id}` : 'anon';
-            const key = `chat_${pfx}_bot${chatbotId}_entity${entityId}`; // 세션 키에 chatbotId 포함
-            let csid = localStorage.getItem(key);
-            if (!csid) {
-                csid = `session_${pfx}_bot${chatbotId}_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
-                localStorage.setItem(key, csid);
-            }
-            // console.log(`[ChatPage] Effect 3: Setting sessionId: ${csid} (key: ${key})`);
-            if (csid !== sessionId) setSessionId(csid); // 스토어와 다를 때만 업데이트
+            
+            // 항상 새로운 세션 ID 생성 (기존 세션 재사용하지 않음)
+            const newSessionId = `session_${pfx}_bot${chatbotId}_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
+            
+            console.log(`[ChatPage] Effect 3: 새 세션 ID 생성: ${newSessionId}`);
+            setSessionId(newSessionId);
         }
-    }, [routeIdFromParams, user, chatbotId, location.search, setSessionId, sessionId]);
+    }, [routeIdFromParams, user, chatbotId, sessionId, setSessionId]);
 
 
     // Effect 4: 채팅 기록 로드 및 인사말 설정 (챗봇 ID, 세션 ID, 스토어 정보 유효 시)

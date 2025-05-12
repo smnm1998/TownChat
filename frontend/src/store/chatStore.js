@@ -151,7 +151,21 @@ const useChatStore = create(
                     }
                 },
                 reset: () => {
-                    // console.log('[chatStore] reset called - Resetting ALL chat related states including session/thread');
+                    console.log('[chatStore] reset called - 모든 채팅 상태 및 세션/스레드 초기화');
+                    
+                    // localStorage에서 현재 채팅과 관련된 세션 정보 삭제
+                    try {
+                        const currentChatbotId = get().chatbotId;
+                        if (currentChatbotId) {
+                            const key = `chat_${currentChatbotId}`;
+                            const keysToRemove = Object.keys(localStorage)
+                                .filter(k => k.includes(key) || k.includes(`session_`) && k.includes(`_bot${currentChatbotId}_`));
+                            keysToRemove.forEach(k => localStorage.removeItem(k));
+                        }
+                    } catch (e) {
+                        console.error('Failed to clean localStorage sessions:', e);
+                    }
+                    
                     set({
                         messages: [],
                         isLoading: false,
@@ -159,9 +173,9 @@ const useChatStore = create(
                         error: null,
                         chatbotId: null,
                         store: null,
-                        sessionId: null, // 세션 ID도 초기화
-                        threadId: null,  // 스레드 ID도 초기화
-                    }, true, 'FULL_CHAT_RESET_AND_SESSION'); // persist 덮어쓰기 및 액션 이름
+                        sessionId: null,
+                        threadId: null,
+                    }, true, 'FULL_CHAT_RESET_AND_SESSION');
                 },
             }),
             {

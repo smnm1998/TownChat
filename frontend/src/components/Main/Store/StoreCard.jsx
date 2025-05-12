@@ -7,7 +7,7 @@ const StoreCard = ({ id, name, address, imageUrl }) => {
     const formattedAddress = address ? address.split(',')[0] : '';
     
     return (
-        <Link to={`/store/${id}/chat`} className={styles.card}>
+        <Link to={`/store/${id}/chat?newSession=true`} className={styles.card}>
             <div className={styles.imageContainer}>
                 <img
                     src={imageUrl || '/placeholder-store.jpg'}

@@ -106,137 +106,6 @@
     @apply px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors;
 }
 
-.markdownContent {
-    word-break: break-word; /* 긴 텍스트 줄바꿈 */
-    white-space: pre-wrap;  /* 마크다운 내 공백/줄바꿈 유지 */
-    line-height: 1.6;       /* 기본 줄 간격 */
-}
-
-/* --- 블록 레벨 요소 기본 간격 --- */
-.markdownContent > :where(p, h4, ul, ol, blockquote, hr, .markdown-info-item.standalone-info) {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.markdownContent > :first-child {
-    margin-top: 0;
-}
-
-.markdownContent > :last-child {
-    /* @apply mb-0; -> */ margin-bottom: 0;
-}
-
-/* --- 텍스트 블록 (문단, 헤딩) --- */
-.markdownContent p {
-    /* 기본 마진 외 특별한 스타일 없음 */
-}
-
-.markdownContent h4.markdown-heading {
-    /* @apply text-lg font-semibold text-gray-800; -> */
-    font-size: 1.125rem; /* Tailwind text-lg */
-    font-weight: 600;   /* Tailwind font-semibold */
-    /* text-gray-800 제거 */
-    /* @apply mt-4 mb-2; -> */ margin-top: 1rem; margin-bottom: 0.5rem;
-}
-
-.markdownContent ul,
-.markdownContent ol { /* 순서 있는 리스트도 기본 스타일 적용 */
-    /* @apply my-2; -> */ margin-top: 0.5rem; margin-bottom: 0.5rem;
-    list-style-position: outside;
-    padding-left: 1.75rem; /* Tailwind pl-7 정도의 들여쓰기 */
-}
-.markdownContent ul {
-    list-style-type: disc; /* 기본 불릿 */
-}
-.markdownContent ol {
-    list-style-type: decimal; /* 숫자 불릿 */
-}
-
-.markdownContent li {
-    /* @apply mb-2 p-3 rounded-md border border-gray-200 bg-gray-50; -> 장식 제거 */
-    /* @apply mb-0.5; -> */ margin-bottom: 0.125rem; /* Tailwind mb-0.5, 아이템 간 최소 간격 */
-}
-.markdownContent li:last-child {
-    /* @apply mb-0; -> */ margin-bottom: 0;
-}
-
-/* "키: 값" 정보 아이템 내 키/값 스타일 (폰트 두께 등 구조 표현) */
-.markdownContent .markdown-info-item {
-    /* @apply flex flex-wrap; -> */ display: flex; flex-wrap: wrap; /* 기본적인 flex 구조는 유지 */
-}
-.markdownContent .markdown-info-key {
-    /* @apply font-semibold text-gray-700 mr-2; -> */
-    font-weight: 600; /* Tailwind font-semibold */
-    /* text-gray-700 제거 */
-    margin-right: 0.5rem; /* Tailwind mr-2 */
-}
-.markdownContent .markdown-info-value {
-    /* @apply text-gray-600; -> 색상 제거 */
-}
-
-/* " - " 패턴으로 생성된 리스트의 소개 문구 스타일 */
-.markdownContent .markdown-list-intro {
-    /* @apply mb-2 font-semibold text-gray-700; -> */
-    margin-bottom: 0.5rem; /* Tailwind mb-2 */
-    font-weight: 600;     /* Tailwind font-semibold */
-    /* text-gray-700 제거 */
-    /* @apply mt-0; -> */ margin-top: 0;
-}
-
-/* --- 기타 블록 요소 --- */
-.markdownContent .markdown-hr {
-    /* @apply border-t border-gray-300; -> */
-    border-top-width: 1px;
-    /* border-gray-300 (색상) 제거, 기본 브라우저 색상 사용 */
-    /* @apply my-4; -> */ margin-top: 1rem; margin-bottom: 1rem;
-}
-
-.markdownContent blockquote {
-    /* @apply border-l-4 border-gray-300 pl-4 py-2 italic text-gray-600; -> */
-    /* border-l-4 (두께) 및 pl-4 (패딩)는 구조 표현에 도움 */
-    border-left-width: 4px;
-    padding-left: 1rem; /* Tailwind pl-4 */
-    padding-top: 0.5rem; /* Tailwind py-2 */
-    padding-bottom: 0.5rem; /* Tailwind py-2 */
-    font-style: italic;
-    /* border-gray-300, text-gray-600 (색상) 제거 */
-    /* my-2는 공통 마진 규칙 따름 */
-    margin-left: 0.5rem; /* 인용구 들여쓰기 느낌 */
-}
-.markdownContent blockquote p {
-    /* @apply my-0; -> */ margin-top: 0; margin-bottom: 0;
-}
-
-/* --- 인라인 요소 --- */
-.markdownContent code {
-    /* @apply bg-gray-200 text-sm text-red-600 px-1 py-0.5 rounded font-mono; -> */
-    /* bg-gray-200, text-red-600 (색상/배경) 제거 */
-    font-size: 0.875rem; /* Tailwind text-sm */
-    padding: 0.125rem 0.25rem; /* Tailwind px-1 py-0.5 정도 */
-    /* rounded 제거 */
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* Tailwind font-mono */
-    border: 1px solid #ccc; /* 코드임을 나타내는 최소한의 테두리 (선택적) */
-}
-
-.markdownContent del {
-    /* @apply text-gray-500; -> 색상 제거 */
-    text-decoration-line: line-through; /* 브라우저 기본 스타일 사용 */
-}
-
-.markdownContent a {
-    /* @apply text-blue-600 hover:underline; -> */
-    /* text-blue-600 (색상) 제거, 브라우저 기본 링크 색상 사용 */
-    text-decoration-line: underline;
-}
-.markdownContent a:hover {
-    /* 추가적인 hover 스타일 (선택적) */
-}
-
-.markdownContent .hashtag {
-    /* @apply text-indigo-600 font-medium; -> */
-    /* text-indigo-600 (색상) 제거 */
-    font-weight: 500; /* Tailwind font-medium */
-}
 
 @keyframes bounce {
     0%, 80%, 100% {
@@ -303,4 +172,101 @@
 
 .typingIndicator span:nth-child(2) {
     animation-delay: -0.16s;
+}
+
+/* 기본 마크다운 스타일 */
+.markdownContent {
+  @apply break-words whitespace-normal leading-relaxed text-sm;
+}
+
+/* 블록 레벨 요소 기본 간격 */
+.markdownContent > p,
+.markdownContent > h4,
+.markdownContent > ul,
+.markdownContent > ol,
+.markdownContent > blockquote,
+.markdownContent > hr,
+.markdownContent > .info-item {
+  @apply my-1.5;
+}
+
+.markdownContent > :first-child {
+  @apply mt-0;
+}
+
+.markdownContent > :last-child {
+  @apply mb-0;
+}
+
+/* 가게 정보 컨테이너 */
+.markdownContent .store-info-container {
+  @apply bg-gray-50 rounded-md p-3 space-y-1.5 border-l-2 border-gray-300;
+}
+
+/* 가게 제목 */
+.markdownContent .store-title {
+  @apply text-base font-bold mb-2 text-gray-800 border-b border-gray-200 pb-1.5;
+}
+
+/* 정보 섹션 */
+.markdownContent .store-info-section {
+  @apply space-y-1 mb-3;
+}
+
+/* 가게 정보 항목 */
+.markdownContent .store-info-item {
+  @apply flex flex-wrap items-baseline mb-1 border-b border-gray-100 pb-1 last:border-b-0;
+}
+
+.markdownContent .store-info-key {
+  @apply font-semibold mr-1.5 text-gray-700 min-w-[60px];
+}
+
+.markdownContent .store-info-value {
+  @apply text-gray-800;
+}
+
+/* 메뉴 섹션 */
+.markdownContent .menu-section {
+  @apply mt-2 pt-2 border-t border-gray-200;
+}
+
+.markdownContent .menu-section-title {
+  @apply font-semibold text-sm text-gray-700 mb-2;
+}
+
+/* 메뉴 리스트 - 중요: 줄바꿈 강제 적용 */
+.markdownContent .menu-list {
+  @apply space-y-2 mb-2;
+}
+
+.markdownContent .menu-list.forced-break {
+  @apply flex flex-col; /* 컬럼 형태로 강제 배치 */
+}
+
+.markdownContent .menu-item {
+  @apply flex flex-col mb-2 pl-4 relative border-b border-gray-100 pb-2 last:border-b-0;
+  /* display: flex;
+  flex-direction: column; /* 메뉴명과 가격을 세로로 배치 */
+}
+
+.markdownContent .menu-item::before {
+  content: "•";
+  @apply absolute left-0 top-0 text-gray-500;
+}
+
+.markdownContent .menu-name {
+  @apply font-medium text-gray-800 mb-1;
+}
+
+.markdownContent .menu-details {
+  @apply flex flex-wrap gap-2;
+}
+
+.markdownContent a {
+  @apply underline text-blue-600;
+}
+
+.markdownContent .hashtag {
+  @apply font-medium text-indigo-600;
 }

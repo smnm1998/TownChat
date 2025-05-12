@@ -52,29 +52,22 @@ const ChatListPage = () => {
     };
 
     const handleStoreClick = (chatbotId, sessionId, threadId) => {
-        // ID 유효성 검사 추가
         if (!chatbotId) {
             alert('죄송합니다. 이 채팅방에 접근할 수 없습니다.');
             return;
         }
         
-        // URL 구성 - 채팅봇 ID를 사용한 경로로 이동
         let url = `/chat/${chatbotId}`;
-        
-        // 쿼리 파라미터 구성
         const queryParams = new URLSearchParams();
         
-        // 세션 ID 추가 (존재하는 경우)
         if (sessionId) {
             queryParams.append('session', sessionId);
         }
         
-        // 스레드 ID 추가 (존재하는 경우)
         if (threadId) {
             queryParams.append('thread', threadId);
         }
         
-        // 쿼리 파라미터가 있는 경우 URL에 추가
         const queryString = queryParams.toString();
         if (queryString) {
             url += `?${queryString}`;
