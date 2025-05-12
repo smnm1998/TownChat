@@ -14,6 +14,7 @@ const authRoutes = require('./src/auth/auth.routes');
 const storeRoutes = require('./src/store/store.routes');
 const chatbotRoutes = require('./src/chatbot/chatbot.routes');
 const regionRoutes = require('./src/region/region.routes');
+const statsRoutes = require('./src/stats/stats.routes'); // 통계 라우트 추가
 
 const app = configureApp();
 
@@ -25,19 +26,12 @@ const publicDirectoryPath = path.join(__dirname, 'public');
 app.use(express.static(publicDirectoryPath));
 logger.info(`정적 파일 제공 디렉토리: ${publicDirectoryPath}`);
 
-// (선택 사항) 특정 경로에 대한 이미지 요청 디버깅 로그 (express.static 이전에 두면 모든 /uploads 요청에 실행)
-// app.use('/uploads', (req, res, next) => {
-//     logger.debug(`[DEBUG] /uploads 요청: ${req.originalUrl}`);
-//     logger.debug(`[DEBUG] 시도하는 파일 시스템 경로 추정: ${path.join(publicDirectoryPath, req.path)}`); // req.path 사용
-//     next();
-// });
-
-
 // API 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/chatbots', chatbotRoutes);
 app.use('/api/regions', regionRoutes);
+app.use('/api/stats', statsRoutes); // 통계 라우트 추가
 
 app.get('/api', (req, res) => {
     res.json({ message: 'TownChat API', version: '1.0.0', status: 'OK' });
