@@ -41,5 +41,6 @@ router.delete('/:id', authenticate, chatbotController.deleteChatbot);
 
 router.post('/:id/reset-assistant', authenticate, chatbotController.resetAssistantId);
 router.post('/:id/setup-assistant', authenticate, chatbotController.setupAssistantId);
+router.delete('/sessions/:sessionId', authenticate, chatbotController.deleteChatSession);
 
 module.exports = router;

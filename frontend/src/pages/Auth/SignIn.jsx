@@ -39,7 +39,7 @@ const SignIn = () => {
                 throw new Error(result.message || '로그인에 실패했습니다.');
             }
 
-            // 로그인 성공 시 토큰 저장 & 리다이렉트
+            // 로그인 성공 시 토큰 저장
             localStorage.setItem('accessToken', result.data.accessToken);
             localStorage.setItem('refreshToken', result.data.refreshToken);
 
@@ -55,20 +55,25 @@ const SignIn = () => {
                     const meResult = await meResponse.json();
                     const userRole = meResult.data.user.role;
                     
+                    // 사용자 ID 저장 (채팅 기록 조회에 필요)
+                    if (meResult.data.user.id) {
+                        localStorage.setItem('userId', meResult.data.user.id);
+                    }
+                    
                     // 관리자인 경우 관리자 대시보드로, 일반 사용자는 메인 페이지로
                     if (userRole === 'admin') {
-                        navigate('/admin/dashboard');
+                        navigate('/admin/dashboard', { replace: true });
                     } else {
-                        navigate('/');
+                        navigate('/', { replace: true });
                     }
                 } else {
                     // 사용자 정보 조회 실패 시 기본적으로 메인 페이지로
-                    navigate('/');
+                    navigate('/', { replace: true });
                 }
             } catch (error) {
                 console.error('사용자 정보 조회 실패:', error);
                 // 오류 발생 시 기본적으로 메인 페이지로
-                navigate('/');
+                navigate('/', { replace: true });
             }
         } catch (error) {
             setSignInError(error.message);

@@ -54,15 +54,58 @@
     @apply grid grid-cols-2 gap-4;
 }
 
-/* 선택된 점포 카드 */
-.selectedStoreCard {
-    @apply absolute bottom-4 left-4 right-4 bg-white rounded-lg shadow-lg overflow-hidden z-10;
-    max-width: 400px;
-    margin: 0 auto;
+/* 모달 스타일 (중앙 위치) */
+.modalOverlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+    animation: fadeIn 0.2s ease-out;
 }
 
-.closeButton {
-    @apply absolute top-2 right-2 p-1 bg-gray-200 rounded-full text-gray-700 text-xs;
+.modalContent {
+    @apply bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-md relative;
+    animation: scaleIn 0.2s ease-out;
+}
+
+.modalCloseButton {
+    @apply absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white bg-opacity-70 text-gray-700 z-20 hover:bg-opacity-100 transition-all;
+}
+
+.modalImageContainer {
+    @apply w-full h-48 bg-gray-200 relative;
+}
+
+.modalImage {
+    @apply w-full h-full object-cover;
+}
+
+.modalInfo {
+    @apply p-5 text-center;
+}
+
+.modalTitle {
+    @apply text-xl font-bold text-gray-800 mb-2;
+}
+
+.modalAddress {
+    @apply text-sm text-gray-600 mb-5;
+}
+
+.chatButton {
+    @apply w-full py-3 px-6 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-md flex items-center justify-center transition-colors;
+}
+
+.chatIcon {
+    @apply mr-2;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 /* 로딩 상태 */
@@ -92,5 +135,10 @@
 @media (max-width: 640px) {
     .storeGrid {
         @apply grid-cols-1;
+    }
+    
+    .modalContent {
+        @apply mx-4;
+        max-width: calc(100% - 2rem);
     }
 }

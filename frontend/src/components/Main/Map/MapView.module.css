@@ -24,3 +24,33 @@
 :global(.map_zoom_buttons) {
     margin-right: 10px !important;
 }
+
+:global(.current-position-marker) {
+    @apply w-4 h-4 bg-blue-500 rounded-full border-2 border-white;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+:global(.custom-overlay) {
+    @apply bg-white px-3 py-2 rounded-md shadow-md text-sm border border-gray-200;
+    min-width: 100px;
+}
+
+:global(.custom-overlay strong) {
+    @apply block mb-1 text-gray-800;
+}
+
+:global(.custom-overlay p) {
+    @apply text-xs text-gray-600 mt-1;
+}
+
+.mapWrapper {
+    @apply relative w-full h-full;
+}
+
+.errorOverlay {
+    @apply absolute inset-0 bg-red-50 flex flex-col items-center justify-center p-4 text-red-600;
+}
+
+.reloadButton {
+    @apply mt-4 px-4 py-2 bg-yellow-400 text-black rounded-md hover:bg-yellow-500;
+}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiMessageSquare, FiTrash2, FiClock } from 'react-icons/fi';
 import Header from '@components/Main/Common/Header';
 import BottomNav from '@components/Main/Common/BottomNav';
 import styles from './ChatListPage.module.css';
@@ -13,31 +14,48 @@ const ChatListPage = () => {
         sessions,
         loading,
         error,
+        deleteLoading,
         fetchSessions,
-        debugSession
+        deleteSession
     } = useChatSessionStore();
 
-    // 첫 렌더링 시 세션 목록 불러오기
+    // 첫 렌더링 시에만 세션 목록 불러오기
     useEffect(() => {
         fetchSessions();
-    }, [fetchSessions]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // 의존성 배열에서 fetchSessions 제거
+
+    // 날짜 형식화 함수
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        // 오늘인 경우 시간만 표시
+        if (diff < 24 * 60 * 60 * 1000 && 
+            date.getDate() === now.getDate() &&
+            date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear()) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // 일주일 이내인 경우 요일 표시
+        if (diff < 7 * 24 * 60 * 60 * 1000) {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            return `${days[date.getDay()]}요일`;
+        }
+        
+        // 그 외에는 날짜 표시
+        return date.toLocaleDateString();
+    };
 
     const handleStoreClick = (chatbotId, sessionId, threadId) => {
         // ID 유효성 검사 추가
         if (!chatbotId) {
-            console.error('유효한 챗봇 ID가 없습니다');
             alert('죄송합니다. 이 채팅방에 접근할 수 없습니다.');
             return;
-        }
-        
-        // 디버깅을 위해 선택한 세션 정보 로깅
-        console.log('클릭한 챗봇 ID:', chatbotId);
-        console.log('클릭한 세션 ID:', sessionId);
-        console.log('클릭한 스레드 ID:', threadId);
-        
-        // 세션 디버깅 함수 호출
-        if (sessionId) {
-            debugSession(sessionId);
         }
         
         // URL 구성 - 채팅봇 ID를 사용한 경로로 이동
@@ -45,8 +63,16 @@ const ChatListPage = () => {
         
         // 쿼리 파라미터 구성
         const queryParams = new URLSearchParams();
-        if (sessionId) queryParams.append('session', sessionId);
-        if (threadId) queryParams.append('thread', threadId);
+        
+        // 세션 ID 추가 (존재하는 경우)
+        if (sessionId) {
+            queryParams.append('session', sessionId);
+        }
+        
+        // 스레드 ID 추가 (존재하는 경우)
+        if (threadId) {
+            queryParams.append('thread', threadId);
+        }
         
         // 쿼리 파라미터가 있는 경우 URL에 추가
         const queryString = queryParams.toString();
@@ -54,8 +80,31 @@ const ChatListPage = () => {
             url += `?${queryString}`;
         }
             
-        console.log('이동할 URL:', url);
         navigate(url);
+    };
+
+    // 채팅 세션 삭제 처리 함수
+    const handleDeleteSession = async (event, sessionId) => {
+        // 이벤트 버블링 방지 (부모 요소의 클릭 이벤트 방지)
+        event.stopPropagation();
+        
+        // 삭제 중 상태 확인
+        if (deleteLoading) {
+            alert('다른 채팅 내역을 삭제하는 중입니다. 잠시 후 다시 시도해주세요.');
+            return;
+        }
+        
+        try {
+            // 삭제 기능 호출
+            const success = await deleteSession(sessionId);
+            
+            if (success) {
+                // 성공 시 메시지 표시 (선택적)
+                alert('채팅 내역이 삭제되었습니다.');
+            }
+        } catch (error) {
+            alert(`삭제 실패: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
+        }
     };
 
     return (
@@ -67,15 +116,24 @@ const ChatListPage = () => {
                 
                 {loading ? (
                     <div className={styles.loading}>
-                        채팅 목록을 불러오는 중...
+                        <div className={styles.loadingSpinner}></div>
+                        <p>채팅 목록을 불러오는 중...</p>
                     </div>
                 ) : error ? (
                     <div className={styles.error}>
-                        {error}
+                        <p>{error}</p>
+                        <button 
+                            className={styles.retryButton}
+                            onClick={() => fetchSessions()}
+                        >
+                            다시 시도
+                        </button>
                     </div>
                 ) : !sessions || sessions.length === 0 ? (
                     <div className={styles.empty}>
-                        채팅 내역이 없습니다.
+                        <FiMessageSquare className={styles.emptyIcon} />
+                        <p>채팅 내역이 없습니다.</p>
+                        <p className={styles.emptySubtext}>점포를 검색하고 대화를 시작해보세요!</p>
                     </div>
                 ) : (
                     <div className={styles.storeList}>
@@ -105,18 +163,24 @@ const ChatListPage = () => {
                                     <div className={styles.storeInfo}>
                                         <h3 className={styles.storeName}>
                                             {session.Chatbot?.Store?.name || session.Chatbot?.name || '채팅'}
-                                            {chatbotId && <span className={styles.chatbotId}> (챗봇 #{chatbotId})</span>}
                                         </h3>
                                         <p className={styles.storeLastMessage}>
                                             {session.lastMessage || '(대화 내용이 없습니다)'}
                                         </p>
                                         <div className={styles.storeTime}>
-                                            {session.last_chat ? new Date(session.last_chat).toLocaleString() : ''}
-                                            {session.thread_id ? (
-                                                <span className={styles.activeIndicator}>연결됨</span>
-                                            ) : null}
+                                            <span className={styles.timeText}>
+                                                <FiClock className={styles.timeIcon} />
+                                                {formatDate(session.last_chat)}
+                                            </span>
                                         </div>
                                     </div>
+                                    <button 
+                                        className={styles.deleteButton}
+                                        onClick={(e) => handleDeleteSession(e, session.session_id)}
+                                        aria-label="채팅 삭제"
+                                    >
+                                        <FiTrash2 className={styles.deleteIcon} />
+                                    </button>
                                 </div>
                             );
                         })}
