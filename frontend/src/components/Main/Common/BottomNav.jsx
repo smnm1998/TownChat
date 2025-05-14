@@ -11,11 +11,13 @@ const BottomNav = () => {
 
     // 경로 변경 감지하여 이전 경로 저장
     useEffect(() => {
-        if (previousPathnameRef.current !== '/add' && location.pathname === '/add') {
-            // 이전 경로가 없거나 루트 경로였다면 기본값 '/' 사용
+        // /add로 시작하는 모든 경로에 대해 처리
+        if (!location.pathname.startsWith('/add') && previousPathnameRef.current 
+            && !previousPathnameRef.current.startsWith('/add')) {
+            // 이전 경로를 저장 (add 관련 경로가 아닌 경우만)
             setPreviousPath(previousPathnameRef.current || '/');
         }
-        // 현재 경로를 ref에 저장하여 다음 렌더링 시 이전 경로로 사용
+        // 현재 경로를 ref에 저장
         previousPathnameRef.current = location.pathname;
     }, [location.pathname]);
 
@@ -24,13 +26,14 @@ const BottomNav = () => {
             return (location.pathname === '/' || location.pathname === '/main') ? styles.active : '';
         }
         if (path === '/add') {
-            return location.pathname === '/add' ? styles.activeAddButton : '';
+            // /add로 시작하는 모든 경로에 대해 활성화 상태 적용
+            return location.pathname.startsWith('/add') ? styles.activeAddButton : '';
         }
         return location.pathname !== '/' && location.pathname.startsWith(path) ? styles.active : '';
     };
 
     // '/add' 경로인지 확인하는 변수
-    const isOnAddPage = location.pathname === '/add';
+    const isOnAddPage = location.pathname.startsWith('/add');
 
     // 중앙 버튼 클릭 핸들러
     const handleCenterButtonClick = (e) => {
